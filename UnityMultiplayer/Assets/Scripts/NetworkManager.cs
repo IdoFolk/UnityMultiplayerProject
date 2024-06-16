@@ -31,7 +31,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     }
     public void CreateRoom(string roomName)
     {
-        PhotonNetwork.JoinOrCreateRoom(roomName,null,null);
+        PhotonNetwork.CreateRoom(roomName,null,null);
     }
 
     public void JoinRoom(string roomName)
