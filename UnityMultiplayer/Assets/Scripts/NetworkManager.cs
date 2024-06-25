@@ -25,9 +25,23 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         PhotonNetwork.ConnectUsingSettings();
     }
 
-    public void JoinLobby()
+    public void JoinLobby(string lobbyName)
     {
-        PhotonNetwork.JoinLobby();
+        PhotonNetwork.JoinLobby(new TypedLobby(lobbyName,LobbyType.Default));
+    }
+    public void CreateRoom(string roomName)
+    {
+        PhotonNetwork.CreateRoom(roomName,null,null);
+    }
+
+    public void JoinRoom(string roomName)
+    {
+        PhotonNetwork.JoinRoom(roomName);
+    }
+
+    public void LeaveRoom()
+    {
+        PhotonNetwork.LeaveRoom();
     }
 
     #region Callbacks
@@ -49,6 +63,23 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         Debug.Log("connected to lobby");
         base.OnJoinedLobby();
     }
+    public override void OnCreatedRoom()
+    {
+        base.OnCreatedRoom();
+        Debug.Log("created room " + PhotonNetwork.CurrentRoom.Name);
+    }
+
+    public override void OnJoinedRoom()
+    {
+        base.OnJoinedRoom();
+        Debug.Log("Joined room " + PhotonNetwork.CurrentRoom.Name);
+    }
+    public override void OnLeftRoom()
+    {
+        base.OnLeftRoom();
+        Debug.Log("you left the room");
+    }
+
 
     #endregion
 }

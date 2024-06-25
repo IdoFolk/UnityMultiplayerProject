@@ -10,6 +10,7 @@ public class MainMenuManager : MonoBehaviourPunCallbacks
     [SerializeField] private TextMeshProUGUI _splashText;
     [SerializeField] private TextMeshProUGUI _loadingText;
     [SerializeField] private GameObject _mainMenuHolder;
+    [SerializeField] private GameObject _LobbyRoomHolder;
 
     private void Start()
     {
@@ -24,6 +25,13 @@ public class MainMenuManager : MonoBehaviourPunCallbacks
         _splashText.gameObject.SetActive(false);
         _loadingText.gameObject.SetActive(true);
         NetworkManager.Instance.Connect();
+    }
+
+    public void EnterLobbyRoom()
+    {
+        _mainMenuHolder.SetActive(false);
+        _LobbyRoomHolder.SetActive(true);
+        
     }
 
     public override void OnConnected()
