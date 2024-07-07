@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 
 public class NetworkManager : MonoBehaviourPunCallbacks
 {
+    private const string appIDPun = "50f5dde3-92b-445d-bf32-c2a347c5dd23a";
     public static NetworkManager Instance;
     private void Awake()
     {
@@ -20,6 +21,12 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         DontDestroyOnLoad(gameObject);
     }
 
+    private void Start()
+    {
+        PhotonNetwork.AutomaticallySyncScene = true;
+        Connect();
+    }
+
     public void Connect()
     {
         PhotonNetwork.ConnectUsingSettings();
@@ -29,13 +36,19 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         PhotonNetwork.JoinLobby(new TypedLobby(lobbyName,LobbyType.Default));
     }
-    public void CreateRoom(string roomName)
+    public void CreateRoom(string roomName, uint maximumPlayers)
     {
-        PhotonNetwork.CreateRoom(roomName,null,null);
+        RoomOptions newRoomOptions = new RoomOptions();
+        newRoomOptions.MaxPlayers = (int)maximumPlayers;
+        PhotonNetwork.CreateRoom(roomName, newRoomOptions,null);
     }
 
     public void JoinRoom(string roomName)
     {
+        if (PhotonNetwork.CurrentRoom != null)
+        {
+            PhotonNetwork.LeaveRoom();
+        }
         PhotonNetwork.JoinRoom(roomName);
     }
 

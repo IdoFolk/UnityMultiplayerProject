@@ -12,6 +12,8 @@ public class MainMenuManager : MonoBehaviourPunCallbacks
     [SerializeField] private GameObject _mainMenuHolder;
     [SerializeField] private GameObject _LobbyRoomHolder;
 
+    private bool flag = false;
+
     private void Start()
     {
         _splashText.gameObject.SetActive(true);
@@ -36,8 +38,12 @@ public class MainMenuManager : MonoBehaviourPunCallbacks
 
     public override void OnConnected()
     {
-        _loadingText.gameObject.SetActive(false);
-        _mainMenuHolder.SetActive(true);
-        base.OnConnected();
+        if (!flag)
+        {
+            _loadingText.gameObject.SetActive(false);
+            _mainMenuHolder.SetActive(true);
+            base.OnConnected();
+            flag = true;
+        }
     }
 }
