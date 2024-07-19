@@ -28,7 +28,13 @@ public class ChatManager : MonoBehaviourPun, IPointerEnterHandler, IPointerExitH
         ChatMessageAlphaValue = _chatMessageAlphaValue;
         _fullChatPanel.SetActive(false);
     }
-    
+    public void SendChatMessage()
+    {
+        var message = _inputField.text;
+        var color = GameNetworkManager.CharacterColor.ToRGBHex();
+        photonView.RPC(nameof(RecieveChatMessage), RpcTarget.All, message, color);
+        _inputField.text = "";
+    }
 
     public void OpenChat()
     {
@@ -37,16 +43,31 @@ public class ChatManager : MonoBehaviourPun, IPointerEnterHandler, IPointerExitH
 
         if (ChatLog.Count > 0)
         {
-            var chatHistory = "";
+            _fullChatText.text = "";
             foreach (var chatMessage in ChatLog)
             {
-                chatHistory += chatMessage.Name + chatMessage.Message + "\n";
+                _fullChatText.text += chatMessage.Name + chatMessage.Message + "\n";
             }
-            _fullChatText.text = chatHistory;
         }
         
         _fullChatPanel.SetActive(true);
         _chatIsOpen = true;
+    }
+
+    public void RefreshChat()
+    {
+        if (!_chatIsOpen)
+        {
+            _lastEntryChatText.text = ChatLog[^1].Name + ChatLog[^1].Message;
+        }
+        else
+        {
+            _fullChatText.text = "";
+            foreach (var chatMessage in ChatLog)
+            {
+                _fullChatText.text += chatMessage.Name + chatMessage.Message + "\n";
+            }
+        }
     }
 
     public void CloseChat()
@@ -60,11 +81,12 @@ public class ChatManager : MonoBehaviourPun, IPointerEnterHandler, IPointerExitH
 
     #region RPC
     [PunRPC]
-    public void SendChatMessage(string message, PhotonMessageInfo messageInfo)
+    public void RecieveChatMessage(string message,string color, PhotonMessageInfo messageInfo)
     {
-        //var chatMessage = new ChatMessage(message, message, ColorLogHelper.SetColor(message, Color.green));
+        var chatMessage = new ChatMessage(messageInfo.Sender.NickName, message, color.FromHexToColor());
+        ChatLog.Add(chatMessage);
+        RefreshChat();
     }
-    
 
     #endregion
 
@@ -92,7 +114,8 @@ public readonly struct ChatMessage
         {
             var color = Color;
             color.a = ChatManager.ChatNameAlphaValue;
-            return name.SetColor(color) + ": ";
+            var str = name + ": ";
+            return str.SetColor(color);
         }
     }
 
@@ -102,7 +125,7 @@ public readonly struct ChatMessage
         {
             var color = Color;
             color.a = ChatManager.ChatMessageAlphaValue;
-            return message.SetColor(color);
+            return message.SetColor(Color.white);
         }
     }
 

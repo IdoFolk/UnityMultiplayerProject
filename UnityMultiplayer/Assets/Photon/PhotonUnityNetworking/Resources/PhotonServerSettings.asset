@@ -43,6 +43,7 @@ MonoBehaviour:
   - CharacterWasPicked
   - SpawnCharacter
   - SendChatMessage
+  - RecieveChatMessage
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

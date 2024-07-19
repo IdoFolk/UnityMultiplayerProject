@@ -4,6 +4,7 @@ using UnityEngine.UI;
 
 public class CharacterPick : MonoBehaviour
 {
+    public event Action<int,Color> OnPick;
     public bool IsTaken { get; private set; } = false;
     public int ID = 0;
     
@@ -21,5 +22,10 @@ public class CharacterPick : MonoBehaviour
     {
         IsTaken = true;
         pickButton.interactable = false;
+    }
+
+    public void IconClick()
+    {
+        OnPick?.Invoke(ID,playerColor);
     }
 }
