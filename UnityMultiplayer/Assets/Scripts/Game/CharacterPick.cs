@@ -1,23 +1,25 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class CharacterPick : MonoBehaviour
-    {
-        [SerializeField] private Button pickButton;
-        public int ID = 0;
-        private bool isTaken = false;
+{
+    public bool IsTaken { get; private set; } = false;
+    public int ID = 0;
     
-        public bool IsTaken 
-        {
-            get { return isTaken; }
-        }
+    [SerializeField] private Image imageButton;
+    [SerializeField] private Button pickButton;
+    [SerializeField] private Color playerColor;
 
-        public void Take()
-        {
-            isTaken = true;
-            pickButton.interactable = false;
-        }
-
+    private void Start()
+    {
+        imageButton.color = playerColor;
     }
 
-   
+
+    public void Take()
+    {
+        IsTaken = true;
+        pickButton.interactable = false;
+    }
+}

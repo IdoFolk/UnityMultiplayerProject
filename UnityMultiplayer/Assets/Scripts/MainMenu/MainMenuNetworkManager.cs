@@ -9,6 +9,10 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
 {
     [Header("Settings")]
     [SerializeField] private int minimumPlayers = 2;
+    
+    [Header("Panels")] 
+    [SerializeField] private GameObject NetworkButtonsPanel;
+    [SerializeField] private GameObject EnterNicknamePanel;
 
     [Header("buttons")] 
     [SerializeField] private Button joinLobbyButton;
@@ -21,6 +25,8 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     [SerializeField] private TMP_InputField roomNameInputField;
     [SerializeField] private GameObject currentRoomPanel;
     [SerializeField] private TextMeshProUGUI currentRoomPlayersNumber;
+    [SerializeField] private TMP_InputField nicknameInputField;
+    [SerializeField] private TextMeshProUGUI nicknameErrorText;
     
     
     private string defaultLobbyName = "DefaultLobby";
@@ -32,8 +38,9 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     {
         joinLobbyButton.interactable = false;
         ToggleJoinRoomButtonsState(false);
+        NetworkButtonsPanel.SetActive(false);
+        EnterNicknamePanel.SetActive(false);
         PhotonNetwork.AutomaticallySyncScene = true;
-        PhotonNetwork.NickName = "MyName";
         PhotonNetwork.ConnectUsingSettings();
     }
 
@@ -44,7 +51,6 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
             joinRoomByNameButton.interactable = false;
         else
             joinRoomByNameButton.interactable = true;
-            
     }
    
 
@@ -53,9 +59,22 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         Debug.Log("We connected to Photon");
         base.OnConnectedToMaster();
         joinLobbyButton.interactable = true;
-
+        EnterNicknamePanel.SetActive(true);
     }
 
+    public void SubmitNickname()
+    {
+        var nickname = nicknameInputField.text;
+        nicknameErrorText.text = "";
+        if (nickname.Length < 1)
+        {
+            nicknameErrorText.text = "Nickname must be at least 1 character long";
+            return;
+        }
+        PhotonNetwork.NickName = nickname;
+        EnterNicknamePanel.SetActive(false);
+        NetworkButtonsPanel.SetActive(true);
+    }
     public void CreateRoom()
     {
         RoomOptions roomOptions = new RoomOptions()
@@ -82,7 +101,6 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     {
         PhotonNetwork.JoinLobby(new TypedLobby(defaultLobbyName, LobbyType.Default));
         ToggleJoinRoomButtonsState(true);
-        
     }
 
     public override void OnJoinedLobby()
