@@ -10,7 +10,7 @@ public class CharacterPick : MonoBehaviour
     
     [SerializeField] private Image imageButton;
     [SerializeField] private Button pickButton;
-    [SerializeField] private Color playerColor;
+    [field: SerializeField] public Color playerColor { get; private set; }
 
     private void Start()
     {

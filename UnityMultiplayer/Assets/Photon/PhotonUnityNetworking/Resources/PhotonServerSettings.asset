@@ -44,6 +44,10 @@ MonoBehaviour:
   - SpawnCharacter
   - SendChatMessage
   - RecieveChatMessage
+  - OnCollisionEnter
+  - Explode
+  - Die
+  - GameOver
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
