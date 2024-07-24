@@ -28,9 +28,10 @@ public class GameNetworkManager : MonoBehaviourPun
         }
     }
 
-    public void SendCharacterPickedToMaster(int CharacterPickedID,Color characterColor)
+    public void SendCharacterPickedToMaster(int CharacterPickedID, Color characterColor)
     {
         photonView.RPC(CLIENT_PICKED_CHARACTER, RpcTarget.MasterClient, CharacterPickedID,characterColor.ToRGBHex());
+        SpawnCharacter(CharacterPickedID, characterColor);
     }
 
 
@@ -43,7 +44,6 @@ public class GameNetworkManager : MonoBehaviourPun
             if (CharacterPickedID == character.ID && !character.IsTaken)
             {
                 //photonView.RPC(SPAWN_CHARACTER, messageInfo.Sender, CharacterPickedID,characterColor);
-                SpawnCharacter(CharacterPickedID, characterColor);
                 photonView.RPC(CHARACTER_WAS_PICKED, RpcTarget.All, CharacterPickedID);
             }
         }
@@ -62,11 +62,10 @@ public class GameNetworkManager : MonoBehaviourPun
         }
     }
 
-    private void SpawnCharacter(int characterId, string characterColor)
+    private void SpawnCharacter(int characterId, Color characterColor)
     {
         CharacterPickedID = characterId;
         characterPickPanel.gameObject.SetActive(false);
-        CharacterColor = characterColor.FromHexToColor();
         Vector3 spawnPosition = CharacterPickedID switch
         {
             0 => new Vector3(10, 0, 0),
@@ -75,7 +74,8 @@ public class GameNetworkManager : MonoBehaviourPun
             3 => new Vector3(0, 0, -10),
             _ => new Vector3(0, 0, 0)
         };
-        PhotonNetwork.Instantiate(PlayerPrefabName, spawnPosition, Quaternion.identity, group: 0);
+        PlayerController player = PhotonNetwork.Instantiate(PlayerPrefabName, spawnPosition, Quaternion.identity,
+            group: 0, new object[] { ColorUtility.ToHtmlStringRGB(characterColor) }).GetComponent<PlayerController>();
         chatPanel.SetActive(true);
     }
 }

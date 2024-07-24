@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
-public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
+public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunInstantiateMagicCallback
 {    
     private const string TrailObjectName = "Prefabs\\TrailObject";
     private const string TrailObjectTag = "Trail";
@@ -17,16 +17,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private float speed = 10;
     [SerializeField] private float rotationSpeed = 90f;
     [SerializeField] public Color playerColor;
-    [SerializeField] private ParticleSystem deathParticle;
-    [SerializeField] private int ourSerializedParameter;
+    [SerializeField] public MeshRenderer meshRenderer;
+    
 
     private float collisionTimer = 0;
     
     private bool movementEnabled = true;
-    public void PlayHitEffect()
-    {
-        deathParticle.Play();
-    }
     
     private Camera cachedCamera;
 
@@ -38,7 +34,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (photonView.IsMine)
         {
             cachedCamera = Camera.main;
-            playerColor = GetComponentInChildren<MeshRenderer>().material.color;
             StartCoroutine(LeaveTrail());
         }
     }
@@ -79,7 +74,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             GameObject trailObject = PhotonNetwork.Instantiate(TrailObjectName,
                 transform.position - transform.forward.normalized * 1.4f, quaternion.identity, 0,
-                new object []{ playerColor.ToString()});
+                new object []{ ColorUtility.ToHtmlStringRGB(playerColor)});
             Debug.Log("Object Instantiated");
             trailCount++;
             if (trailCount > 20)
@@ -135,34 +130,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         movementEnabled = false;
     }
 
-    // private void OnDrawGizmos()
-    // {
-    //     Gizmos.color = Color.green;
-    //     Gizmos.DrawSphere(raycastPos, 2);
-    // }
-    
-    /*private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag(TrailObjectTag))
-        {
-            Projectile otherProjectile = other.GetComponent<Projectile>();
-            
-            if (otherProjectile.photonView.Owner.ActorNumber == photonView.Owner.ActorNumber)
-                return;
-
-            PlayHitEffect();
-            if (otherProjectile.photonView.IsMine)
-            {
-                //run login that affect other players! only the projectile owner should do that
-                StartCoroutine(DestroyDelay(5f, otherProjectile.gameObject));
-                photonView.RPC(ReceiveDamageRPC, RpcTarget.All, 10);
-            }
-            
-            otherProjectile.visualPanel.SetActive(false);
-            //add bool for projectile hit
-        }
-    }*/
-
     IEnumerator DestroyDelay(float delay, GameObject otherObject)
     {
         yield return new WaitForSeconds(delay);
@@ -194,6 +161,25 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 movementVector.x = (float)stream.ReceiveNext();
                 movementVector.z = (float)stream.ReceiveNext();
             }
+        }
+    }
+    
+    /// <summary>
+    /// Why is player color data not reading correctly??? Plz help
+    /// </summary>
+    /// <param name="info"></param>
+    public void OnPhotonInstantiate(PhotonMessageInfo info)
+    {
+        object[] instantiationData = info.photonView.InstantiationData;
+        if (ColorUtility.TryParseHtmlString((string)instantiationData[0], out Color color))
+        {
+            playerColor = color;
+            meshRenderer.material.color = color;
+            Debug.Log($"Player color changed to {color}.");
+        }
+        else
+        {
+            Debug.Log("Error with player color data.");
         }
     }
 }

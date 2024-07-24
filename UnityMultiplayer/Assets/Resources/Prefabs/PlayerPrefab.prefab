@@ -124,8 +124,7 @@ MonoBehaviour:
   speed: 7
   rotationSpeed: 115
   playerColor: {r: 0.7294118, g: 0.1568627, b: 0.1568627, a: 1}
-  deathParticle: {fileID: 0}
-  ourSerializedParameter: 0
+  meshRenderer: {fileID: 4665118390813854621}
 --- !u!114 &7865973996173335750
 MonoBehaviour:
   m_ObjectHideFlags: 0
