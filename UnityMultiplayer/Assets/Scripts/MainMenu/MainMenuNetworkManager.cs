@@ -13,26 +13,34 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     [Header("Panels")] 
     [SerializeField] private GameObject NetworkButtonsPanel;
     [SerializeField] private GameObject EnterNicknamePanel;
-
+    [SerializeField] private GameObject currentRoomPanel;
+    [SerializeField] private GameObject lobbyInfoPanel;
+    
     [Header("buttons")] 
     [SerializeField] private Button joinLobbyButton;
     [SerializeField] private Button[] roomButtons;
     [SerializeField] private Button joinRoomByNameButton;
     [SerializeField] private Button startGameButton;
     
-    [Header("other")]
+    [Header("Text")]
     [SerializeField] private TextMeshProUGUI networkStatusText;
-    [SerializeField] private TMP_InputField roomNameInputField;
-    [SerializeField] private GameObject currentRoomPanel;
     [SerializeField] private TextMeshProUGUI currentRoomPlayersNumber;
-    [SerializeField] private TMP_InputField nicknameInputField;
     [SerializeField] private TextMeshProUGUI nicknameErrorText;
+    [SerializeField] private TextMeshProUGUI lobbyRoomsInfo;
     
+    [Header("Input Fields")]
+    [SerializeField] private TMP_InputField lobbyNameInputField;
+    [SerializeField] private TMP_InputField nicknameInputField;
+    [SerializeField] private TMP_InputField roomNameInputField;
+    [SerializeField] private TMP_InputField RoomNameInputField; 
     
+    private string roomName = "";
+    private string lobbyName;
     private string defaultLobbyName = "DefaultLobby";
     private string defaultRoomName = "DefaultRoom";
-    //private string defaultMinimumPlayersString = "2";
     private string gameSceneName = "GameScene";
+    
+    private Dictionary<string,int> roomListInfo = new Dictionary<string, int>(); //<RoomName, PlayerCount>
     
     private void Start()
     {
@@ -52,14 +60,30 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         else
             joinRoomByNameButton.interactable = true;
     }
-   
-
+    
     public override void OnConnectedToMaster()
     {
         Debug.Log("We connected to Photon");
         base.OnConnectedToMaster();
-        joinLobbyButton.interactable = true;
         EnterNicknamePanel.SetActive(true);
+    }
+    
+    public void SubmitLobbyName()
+    {
+        lobbyName = lobbyNameInputField.text;
+        if (lobbyName.Length >= 1)
+        {
+            joinLobbyButton.interactable = true;
+        }
+        else
+        {
+            joinLobbyButton.interactable = false;
+        }
+    }
+
+    public void SubmitRoomName()
+    {
+        roomName = RoomNameInputField.text;
     }
 
     public void SubmitNickname()
@@ -81,7 +105,10 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         {
             MaxPlayers = 4,
         };
-        PhotonNetwork.CreateRoom(defaultRoomName,roomOptions);
+        if(roomName.Length >= 1)
+            PhotonNetwork.CreateRoom(roomName,roomOptions);
+        else
+            PhotonNetwork.CreateRoom(defaultRoomName,roomOptions);
         ToggleJoinRoomButtonsState(false);
     }
 
@@ -99,7 +126,11 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
 
     public void JoinLobby()
     {
-        PhotonNetwork.JoinLobby(new TypedLobby(defaultLobbyName, LobbyType.Default));
+        if(lobbyName.Length > 1)
+            PhotonNetwork.JoinLobby(new TypedLobby(lobbyName, LobbyType.Default));
+        else
+            PhotonNetwork.JoinLobby(new TypedLobby(defaultLobbyName, LobbyType.Default));
+        
         ToggleJoinRoomButtonsState(true);
     }
 
@@ -108,6 +139,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         base.OnJoinedLobby();
         Debug.Log($"We successfully joined the lobby {PhotonNetwork.CurrentLobby}!");
         joinLobbyButton.interactable = false;
+        lobbyInfoPanel.SetActive(true);
     }
 
     public void JoinRandomRoom()
@@ -140,6 +172,10 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         base.OnJoinedRoom();
         RefreshCurrentRoomInfo();
         Debug.Log("We successfully joined the room " + PhotonNetwork.CurrentRoom);
+        lobbyInfoPanel.SetActive(false);
+        joinRoomByNameButton.interactable = false;
+        
+
     }
 
     public override void OnJoinRoomFailed(short returnCode, string message)
@@ -158,11 +194,31 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     public override void OnRoomListUpdate(List<RoomInfo> roomList)
     {
         base.OnRoomListUpdate(roomList);
-        foreach (RoomInfo roomInfo in roomList)
+        Dictionary<string,int> roomListInfoCopy = new Dictionary<string, int>(roomListInfo);
+        foreach (var newRoomInfo in roomList)
         {
-            Debug.Log(roomInfo.Name);
+            bool roomIsNew = true;
+            foreach (var oldRoomInfo in roomListInfoCopy)
+            {
+                if (oldRoomInfo.Key == newRoomInfo.Name)
+                {
+                    roomIsNew = false;
+                    roomListInfo[oldRoomInfo.Key] = newRoomInfo.PlayerCount;
+                }
+            }
+            if (roomIsNew)
+            {
+                roomListInfo.Add(newRoomInfo.Name, newRoomInfo.PlayerCount);
+            }
+        }
+    
+        lobbyRoomsInfo.text = " ";
+        foreach (KeyValuePair<string, int> roomInfo in roomListInfo)
+        {
+            lobbyRoomsInfo.text += roomInfo.Key + " Players: " + roomInfo.Value + "/4" + "\n";
         }
     }
+    
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
@@ -188,6 +244,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
 
     private void ToggleJoinRoomButtonsState(bool active)
     {
+        
         foreach (Button joinRoomButton in roomButtons)
         {
             joinRoomButton.interactable = active;
