@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Photon.Pun;
 using Photon.Realtime;
 using Unity.Mathematics;
@@ -18,9 +19,20 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
     [SerializeField] private float rotationSpeed = 90f;
     [SerializeField] private Color playerColor;
     [SerializeField] private MeshRenderer meshRenderer;
-    
 
-    private float collisionTimer = 0;
+    private List<GameObject> trailObjects;
+
+    private GameNetworkManager manager;
+    private Transform trailObjectsParent;
+
+    public void SetManager(GameNetworkManager gameNetworkManager)
+    {
+        manager = gameNetworkManager;
+        trailObjectsParent = manager.TrailObjectsParent;
+    }
+
+
+    private float lifetimeTimer = 0;
     
     private bool movementEnabled = true;
     
@@ -28,6 +40,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
     private Rigidbody _rigidbody;
     private Vector3 raycastPos;
     private Vector3 movementVector = new Vector3();
+    private IEnumerator trailCoroutine;
     
     private void Start()
     {
@@ -35,19 +48,19 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
         {
             _rigidbody = GetComponent<Rigidbody>();
             cachedCamera = Camera.main;
-            StartCoroutine(LeaveTrail());
+            trailObjects = new List<GameObject>();
+            trailCoroutine = LeaveTrail();
+            StartCoroutine(trailCoroutine);
         }
     }
 
     private void FixedUpdate()
     {
-        collisionTimer += Time.fixedDeltaTime;
+        lifetimeTimer += Time.fixedDeltaTime;
         //constantly moves the player forward
         if (photonView.IsMine && movementEnabled)
         {
             _rigidbody.linearVelocity = transform.forward * (speed); 
-            //moves the transform in the direction of the forward vector in local world space
-            //transform.Translate(transform.forward * (speed * Time.fixedDeltaTime), Space.World);
             
             //rotates the player left or right when he presses the arrow keys
             if (Input.GetKey(KeyCode.LeftArrow))
@@ -77,7 +90,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             GameObject trailObject = PhotonNetwork.Instantiate(TrailObjectName,
                 transform.position - transform.forward.normalized * 1.4f, quaternion.identity, 0,
                 new object []{ ColorUtility.ToHtmlStringRGB(playerColor)});
-            Debug.Log("Object Instantiated");
+            trailObjects.Add(trailObject);
+            
             trailCount++;
             if (trailCount > 20)
             {
@@ -96,7 +110,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
     /// <exception cref="NotImplementedException"></exception>
     private void OnCollisionEnter(Collision other)
     {
-        if (collisionTimer < 3)
+        if (lifetimeTimer < 3)
         {
             return;
         }
@@ -107,7 +121,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
         }
     }
 
-    
+
     [PunRPC]
     private void Die(int actorNumber)
     {
@@ -119,20 +133,16 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             {
                 photonView.RPC(GameOverRPC, RpcTarget.All);
             }
+            manager.AddTrailObjectsToList(trailObjects);
             PhotonNetwork.Destroy(gameObject);
             Debug.Log($"Player {photonView.Owner.ActorNumber} died");
         }
     }
-    
-    [PunRPC] private void GameOver()
-    {
-        movementEnabled = false;
-    }
 
-    IEnumerator DestroyDelay(float delay, GameObject otherObject)
+    [PunRPC]
+    private void GameOver()
     {
-        yield return new WaitForSeconds(delay);
-        PhotonNetwork.Destroy(otherObject);
+        //manager.GameOver();
     }
     
     /*
@@ -160,6 +170,32 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
         else
         {
             Debug.Log("Error with player color data.");
+        }
+    }
+
+    /// <summary>
+    /// TODO: Add a timer to these PowerUps and disable/revert them after the timer runs out
+    /// </summary>
+    /// <param name="type"></param>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public void ApplyPowerUp(PowerUp.PowerUpType type)
+    {
+        switch (type)
+        {
+            case PowerUp.PowerUpType.SpeedUp:
+                speed += 3;
+                break;
+            case PowerUp.PowerUpType.SlowDown:
+                speed -= 3;
+                break;
+            case PowerUp.PowerUpType.Invincibility:
+                GetComponent<Collider>().enabled = false;
+                break;
+            case PowerUp.PowerUpType.NoTrail:
+                StopCoroutine(trailCoroutine);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
     }
 }

@@ -6,15 +6,11 @@ public class PlayerTrail : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallba
 {
     [SerializeField] private MeshRenderer _meshRenderer;
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
 
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
+        transform.parent = GameNetworkManager.Instance.TrailObjectsParent;
+        
         object[] instantiationData = info.photonView.InstantiationData;
         if (ColorUtility.TryParseHtmlString("#"+(string)instantiationData[0], out Color color))
         {
