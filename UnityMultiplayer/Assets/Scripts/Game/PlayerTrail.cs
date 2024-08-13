@@ -4,18 +4,7 @@ using UnityEngine;
 
 public class PlayerTrail : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 {
-    private MeshRenderer _meshRenderer;
-
-    private void OnValidate()
-    {
-        _meshRenderer = GetComponent<MeshRenderer>();
-    }
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    [SerializeField] private MeshRenderer _meshRenderer;
 
     // Update is called once per frame
     void Update()
@@ -27,7 +16,7 @@ public class PlayerTrail : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallba
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
         object[] instantiationData = info.photonView.InstantiationData;
-        if (ColorUtility.TryParseHtmlString((string)instantiationData[0], out Color color))
+        if (ColorUtility.TryParseHtmlString("#"+(string)instantiationData[0], out Color color))
         {
             _meshRenderer.material.color = color;
             Debug.Log($"Trail color changed to {color}.");

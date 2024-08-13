@@ -12,11 +12,13 @@ public class GameNetworkManager : MonoBehaviourPun
     [SerializeField] private CharacterPick[] characterPicks;
     public static int CharacterPickedID;
     public static Color CharacterColor;
+    public static PlayerController currentPlayer { get; private set; }
 
     private const string PlayerPrefabName = "Prefabs\\PlayerPrefab";
     private const string CLIENT_PICKED_CHARACTER = nameof(SendCharacterPicked);
     private const string CHARACTER_WAS_PICKED = nameof(CharacterWasPicked);
     //private const string SPAWN_CHARACTER = nameof(SpawnCharacter);
+    
 
     private void Start()
     {
@@ -68,14 +70,15 @@ public class GameNetworkManager : MonoBehaviourPun
         characterPickPanel.gameObject.SetActive(false);
         Vector3 spawnPosition = CharacterPickedID switch
         {
-            0 => new Vector3(10, 0, 0),
-            1 => new Vector3(-10, 0, 0),
-            2 => new Vector3(0, 0, 10),
-            3 => new Vector3(0, 0, -10),
+            0 => new Vector3(20, 0, 0),
+            1 => new Vector3(-20, 0, 0),
+            2 => new Vector3(0, 0, 20),
+            3 => new Vector3(0, 0, -20),
             _ => new Vector3(0, 0, 0)
         };
         PlayerController player = PhotonNetwork.Instantiate(PlayerPrefabName, spawnPosition, Quaternion.identity,
             group: 0, new object[] { ColorUtility.ToHtmlStringRGB(characterColor) }).GetComponent<PlayerController>();
         chatPanel.SetActive(true);
+        currentPlayer = player;
     }
 }

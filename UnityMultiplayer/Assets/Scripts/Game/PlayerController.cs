@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
-public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunInstantiateMagicCallback
+public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 {    
     private const string TrailObjectName = "Prefabs\\TrailObject";
     private const string TrailObjectTag = "Trail";
@@ -16,8 +16,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
     
     [SerializeField] private float speed = 10;
     [SerializeField] private float rotationSpeed = 90f;
-    [SerializeField] public Color playerColor;
-    [SerializeField] public MeshRenderer meshRenderer;
+    [SerializeField] private Color playerColor;
+    [SerializeField] private MeshRenderer meshRenderer;
     
 
     private float collisionTimer = 0;
@@ -25,7 +25,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
     private bool movementEnabled = true;
     
     private Camera cachedCamera;
-
+    private Rigidbody _rigidbody;
     private Vector3 raycastPos;
     private Vector3 movementVector = new Vector3();
     
@@ -33,6 +33,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
     {
         if (photonView.IsMine)
         {
+            _rigidbody = GetComponent<Rigidbody>();
             cachedCamera = Camera.main;
             StartCoroutine(LeaveTrail());
         }
@@ -44,19 +45,20 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
         //constantly moves the player forward
         if (photonView.IsMine && movementEnabled)
         {
+            _rigidbody.linearVelocity = transform.forward * (speed); 
             //moves the transform in the direction of the forward vector in local world space
-            transform.Translate(transform.forward * (speed * Time.deltaTime), Space.World);
+            //transform.Translate(transform.forward * (speed * Time.fixedDeltaTime), Space.World);
             
             //rotates the player left or right when he presses the arrow keys
             if (Input.GetKey(KeyCode.LeftArrow))
             {
-                transform.Rotate(Vector3.up, -rotationSpeed * Time.deltaTime, Space.World);
+                transform.Rotate(Vector3.up, -rotationSpeed * Time.fixedDeltaTime, Space.World);
                 Debug.Log("left");
             }
         
             if (Input.GetKey(KeyCode.RightArrow))
             {
-                transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.World);
+                transform.Rotate(Vector3.up, rotationSpeed * Time.fixedDeltaTime, Space.World);
                 Debug.Log("right");
             }
         }
@@ -98,13 +100,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
         {
             return;
         }
-        if (other.gameObject.CompareTag("Player"))
-        {
-            photonView.RPC(DeathRPC, RpcTarget.All, other.gameObject.GetComponent<PhotonView>().Owner.ActorNumber);
-        }
         if (photonView.IsMine)
         {
-            photonView.RPC(DeathRPC, RpcTarget.All, photonView.Owner.ActorNumber);
+            //photonView.RPC(DeathRPC, RpcTarget.All, photonView.Owner.ActorNumber);
+            Die(photonView.Owner.ActorNumber);
         }
     }
 
@@ -144,25 +143,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
         Debug.Log("Hp left is " + HP);
     }*/
     
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-    {
-        if (stream.IsWriting)
-        {
-            float somea, someb;
-            somea = movementVector.x;
-            someb = movementVector.z;
-            stream.SendNext(somea);
-            stream.SendNext(someb);
-        }
-        else
-        {
-            if (stream.IsReading)
-            {
-                movementVector.x = (float)stream.ReceiveNext();
-                movementVector.z = (float)stream.ReceiveNext();
-            }
-        }
-    }
     
     /// <summary>
     /// Why is player color data not reading correctly??? Plz help
@@ -171,7 +151,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
         object[] instantiationData = info.photonView.InstantiationData;
-        if (ColorUtility.TryParseHtmlString((string)instantiationData[0], out Color color))
+        if (ColorUtility.TryParseHtmlString("#"+(string)instantiationData[0], out Color color))
         {
             playerColor = color;
             meshRenderer.material.color = color;
