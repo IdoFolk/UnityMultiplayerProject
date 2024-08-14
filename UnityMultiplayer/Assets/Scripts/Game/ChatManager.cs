@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using Photon.Pun;
+using Photon.Realtime;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class ChatManager : MonoBehaviourPun, IPointerEnterHandler, IPointerExitHandler
+public class ChatManager : MonoBehaviourPunCallbacks, IPointerEnterHandler, IPointerExitHandler
 {
     public List<ChatMessage> ChatLog { get; private set; } = new();
 
@@ -53,6 +54,7 @@ public class ChatManager : MonoBehaviourPun, IPointerEnterHandler, IPointerExitH
         _fullChatPanel.SetActive(true);
         _chatIsOpen = true;
     }
+    
 
     public void RefreshChat()
     {
@@ -103,6 +105,15 @@ public class ChatManager : MonoBehaviourPun, IPointerEnterHandler, IPointerExitH
     public void OnPointerExit(PointerEventData eventData)
     {
         _mouseOnUI = false;
+    }
+
+    public override void OnMasterClientSwitched(Player newMasterClient)
+    {
+        base.OnMasterClientSwitched(newMasterClient);
+        var message = newMasterClient.NickName + " is the new master client!";
+        var color = GameNetworkManager.CharacterColor.ToRGBHex();
+        photonView.RPC(nameof(RecieveChatMessage), RpcTarget.All, message, color);
+        
     }
 }
 

@@ -15,11 +15,11 @@ public class PlayerTrail : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallba
         if (ColorUtility.TryParseHtmlString("#"+(string)instantiationData[0], out Color color))
         {
             _meshRenderer.material.color = color;
-            Debug.Log($"Trail color changed to {color}.");
+            //Debug.Log($"Trail color changed to {color}.");
         }
         else
         {
-            Debug.Log("Error with trail color data.");
+            //Debug.Log("Error with trail color data.");
         }
     }
 }

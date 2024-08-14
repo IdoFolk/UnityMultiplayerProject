@@ -66,13 +66,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             if (Input.GetKey(KeyCode.LeftArrow))
             {
                 transform.Rotate(Vector3.up, -rotationSpeed * Time.fixedDeltaTime, Space.World);
-                Debug.Log("left");
             }
         
             if (Input.GetKey(KeyCode.RightArrow))
             {
                 transform.Rotate(Vector3.up, rotationSpeed * Time.fixedDeltaTime, Space.World);
-                Debug.Log("right");
             }
         }
     }
@@ -165,11 +163,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
         {
             playerColor = color;
             meshRenderer.material.color = color;
-            Debug.Log($"Player color changed to {color}.");
+            //Debug.Log($"Player color changed to {color}.");
         }
         else
         {
-            Debug.Log("Error with player color data.");
+            //Debug.Log("Error with player color data.");
         }
     }
 
@@ -197,5 +195,22 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        base.OnPlayerLeftRoom(otherPlayer);
+        Debug.Log(otherPlayer.NickName + " has left the room");
+        if(otherPlayer == photonView.Owner)
+        {
+            Debug.Log(photonView.Owner.NickName + " object owner");
+            PhotonNetwork.Destroy(gameObject);
+        }
+    }
+
+    public override void OnMasterClientSwitched(Player newMasterClient)
+    {
+        base.OnMasterClientSwitched(newMasterClient);
+        
     }
 }

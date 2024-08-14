@@ -45,6 +45,7 @@ public class GameNetworkManager : MonoBehaviourPun
     private const string CLIENT_PICKED_CHARACTER = nameof(SendCharacterPicked);
     private const string CHARACTER_WAS_PICKED = nameof(CharacterWasPicked);
     private const string RESPAWN_CHARACTER = nameof(RespawnCharacter);
+    private const string GET_NEXT_POWERUP_SPAWN_POSITION = nameof(GetNextPowerUpSpawnPosition);
 
     private const string GameOverRPC = "GameOver";
     //private const string SPAWN_CHARACTER = nameof(SpawnCharacter);
@@ -57,6 +58,7 @@ public class GameNetworkManager : MonoBehaviourPun
 
     private void Start()
     {
+        PhotonNetwork.CurrentRoom.PlayerTtl = 1;
         chatPanel.SetActive(false);
         for (int i = 0; i < characterPicks.Length; i++)
         {
@@ -144,7 +146,7 @@ public class GameNetworkManager : MonoBehaviourPun
     [PunRPC]
     public void GameOver()
     {
-        StopCoroutine(SpawnPowerupsCoroutine);
+        //StopCoroutine(SpawnPowerupsCoroutine);
         foreach (var trailObject in spawnedTrailObjects)
         {
             PhotonNetwork.Destroy(trailObject);
@@ -158,12 +160,18 @@ public class GameNetworkManager : MonoBehaviourPun
         photonView.RPC(RESPAWN_CHARACTER, RpcTarget.All);
     }
 
+    [PunRPC]
+    private void GetNextPowerUpSpawnPosition(Vector3 position)
+    {
+        nextPowerUpSpawnPosition = position;
+    }
+
     private void OnStartGame()
     {
-        if (!PhotonNetwork.IsMasterClient)
+        /*if (!PhotonNetwork.IsMasterClient)
         {
             return;
-        }
+        }*/
 
         SpawnPowerupsCoroutine = SpawnPowerUps();
         StartCoroutine(SpawnPowerupsCoroutine);
@@ -176,20 +184,34 @@ public class GameNetworkManager : MonoBehaviourPun
     /// <returns></returns>
     private IEnumerator SpawnPowerUps()
     {
-        if (!PhotonNetwork.IsMasterClient)
-            yield return null;
-        else
+        while (true)
         {
-            while (true)
+            
+            if (PhotonNetwork.IsMasterClient)
             {
-                //TRANSFER THIS TO NEW MASTER CLIENT
-                nextPowerUpSpawnPosition = powerupSpawnPositions[UnityEngine.Random.Range(0, powerupSpawnPositions.Count)].position;
+                var nextPowerUpSpawnPositiontemp = powerupSpawnPositions[UnityEngine.Random.Range(0, powerupSpawnPositions.Count)].position;
+                photonView.RPC(GET_NEXT_POWERUP_SPAWN_POSITION, RpcTarget.All, nextPowerUpSpawnPositiontemp);
+            }
+            
+            yield return new WaitForSeconds(2f);
+            
+            if (PhotonNetwork.IsMasterClient)
+            {   
                 
-                yield return new WaitForSeconds(10f);
                 GameObject powerUp = PhotonNetwork.InstantiateRoomObject(PowerUpPrefabName,
                     nextPowerUpSpawnPosition, quaternion.identity, 0,
                     new object []{ UnityEngine.Random.Range(0, Enum.GetValues(typeof(PowerUp.PowerUpType)).Length)});
             }
+           
         }
+    
+    }
+    
+    
+    
+    [ContextMenu("leveRoom")]
+    public void LeaveRoom()
+    {
+        PhotonNetwork.LeaveRoom();
     }
 }
