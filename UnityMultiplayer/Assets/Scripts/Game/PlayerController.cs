@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Photon.Pun;
 using Photon.Realtime;
 using Unity.Mathematics;
@@ -7,7 +8,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
-public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunInstantiateMagicCallback
+public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 {    
     private const string TrailObjectName = "Prefabs\\TrailObject";
     private const string TrailObjectTag = "Trail";
@@ -16,48 +17,64 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
     
     [SerializeField] private float speed = 10;
     [SerializeField] private float rotationSpeed = 90f;
-    [SerializeField] public Color playerColor;
-    [SerializeField] public MeshRenderer meshRenderer;
-    
+    [SerializeField] private Color playerColor;
+    [SerializeField] private MeshRenderer meshRenderer;
 
-    private float collisionTimer = 0;
+    private List<GameObject> trailObjects;
+
+    private GameNetworkManager manager;
+    private Transform trailObjectsParent;
+
+    public void SetManager(GameNetworkManager gameNetworkManager)
+    {
+        manager = gameNetworkManager;
+        trailObjectsParent = manager.TrailObjectsParent;
+    }
+
+
+    private float lifetimeTimer = 0;
     
     private bool movementEnabled = true;
     
     private Camera cachedCamera;
-
+    private Rigidbody _rigidbody;
     private Vector3 raycastPos;
     private Vector3 movementVector = new Vector3();
+    private IEnumerator trailCoroutine;
     
     private void Start()
     {
         if (photonView.IsMine)
         {
+            _rigidbody = GetComponent<Rigidbody>();
             cachedCamera = Camera.main;
-            StartCoroutine(LeaveTrail());
+            trailObjects = new List<GameObject>();
+            trailCoroutine = LeaveTrail();
+            StartCoroutine(trailCoroutine);
         }
     }
 
+    public void DisablePlayer()
+    {
+        movementEnabled = false;
+    }
     private void FixedUpdate()
     {
-        collisionTimer += Time.fixedDeltaTime;
+        lifetimeTimer += Time.fixedDeltaTime;
         //constantly moves the player forward
         if (photonView.IsMine && movementEnabled)
         {
-            //moves the transform in the direction of the forward vector in local world space
-            transform.Translate(transform.forward * (speed * Time.deltaTime), Space.World);
+            _rigidbody.linearVelocity = transform.forward * (speed); 
             
             //rotates the player left or right when he presses the arrow keys
             if (Input.GetKey(KeyCode.LeftArrow))
             {
-                transform.Rotate(Vector3.up, -rotationSpeed * Time.deltaTime, Space.World);
-                Debug.Log("left");
+                transform.Rotate(Vector3.up, -rotationSpeed * Time.fixedDeltaTime, Space.World);
             }
         
             if (Input.GetKey(KeyCode.RightArrow))
             {
-                transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.World);
-                Debug.Log("right");
+                transform.Rotate(Vector3.up, rotationSpeed * Time.fixedDeltaTime, Space.World);
             }
         }
     }
@@ -75,7 +92,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
             GameObject trailObject = PhotonNetwork.Instantiate(TrailObjectName,
                 transform.position - transform.forward.normalized * 1.4f, quaternion.identity, 0,
                 new object []{ ColorUtility.ToHtmlStringRGB(playerColor)});
-            Debug.Log("Object Instantiated");
+            trailObjects.Add(trailObject);
+            
             trailCount++;
             if (trailCount > 20)
             {
@@ -94,21 +112,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
     /// <exception cref="NotImplementedException"></exception>
     private void OnCollisionEnter(Collision other)
     {
-        if (collisionTimer < 3)
+        if (lifetimeTimer < 3)
         {
             return;
         }
-        if (other.gameObject.CompareTag("Player"))
-        {
-            photonView.RPC(DeathRPC, RpcTarget.All, other.gameObject.GetComponent<PhotonView>().Owner.ActorNumber);
-        }
         if (photonView.IsMine)
         {
-            photonView.RPC(DeathRPC, RpcTarget.All, photonView.Owner.ActorNumber);
+            //photonView.RPC(DeathRPC, RpcTarget.All, photonView.Owner.ActorNumber);
+            Die(photonView.Owner.ActorNumber);
         }
     }
 
-    
+
     [PunRPC]
     private void Die(int actorNumber)
     {
@@ -120,20 +135,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
             {
                 photonView.RPC(GameOverRPC, RpcTarget.All);
             }
+            manager.AddTrailObjectsToList(trailObjects);
             PhotonNetwork.Destroy(gameObject);
             Debug.Log($"Player {photonView.Owner.ActorNumber} died");
         }
     }
     
-    [PunRPC] private void GameOver()
-    {
-        movementEnabled = false;
-    }
+    
 
-    IEnumerator DestroyDelay(float delay, GameObject otherObject)
+    [PunRPC]
+    private void GameOver()
     {
-        yield return new WaitForSeconds(delay);
-        PhotonNetwork.Destroy(otherObject);
+        //manager.GameOver();
     }
     
     /*
@@ -144,25 +157,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
         Debug.Log("Hp left is " + HP);
     }*/
     
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-    {
-        if (stream.IsWriting)
-        {
-            float somea, someb;
-            somea = movementVector.x;
-            someb = movementVector.z;
-            stream.SendNext(somea);
-            stream.SendNext(someb);
-        }
-        else
-        {
-            if (stream.IsReading)
-            {
-                movementVector.x = (float)stream.ReceiveNext();
-                movementVector.z = (float)stream.ReceiveNext();
-            }
-        }
-    }
     
     /// <summary>
     /// Why is player color data not reading correctly??? Plz help
@@ -171,15 +165,58 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable, IPunI
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
         object[] instantiationData = info.photonView.InstantiationData;
-        if (ColorUtility.TryParseHtmlString((string)instantiationData[0], out Color color))
+        if (ColorUtility.TryParseHtmlString("#"+(string)instantiationData[0], out Color color))
         {
             playerColor = color;
             meshRenderer.material.color = color;
-            Debug.Log($"Player color changed to {color}.");
+            //Debug.Log($"Player color changed to {color}.");
         }
         else
         {
-            Debug.Log("Error with player color data.");
+            //Debug.Log("Error with player color data.");
         }
+    }
+
+    /// <summary>
+    /// TODO: Add a timer to these PowerUps and disable/revert them after the timer runs out
+    /// </summary>
+    /// <param name="type"></param>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public void ApplyPowerUp(PowerUp.PowerUpType type)
+    {
+        switch (type)
+        {
+            case PowerUp.PowerUpType.SpeedUp:
+                speed += 3;
+                break;
+            case PowerUp.PowerUpType.SlowDown:
+                speed -= 3;
+                break;
+            case PowerUp.PowerUpType.Invincibility:
+                GetComponent<Collider>().enabled = false;
+                break;
+            case PowerUp.PowerUpType.NoTrail:
+                StopCoroutine(trailCoroutine);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+        Debug.Log($"Player {photonView.Owner.ActorNumber} PowerUp applied: {type}");
+    }
+
+    // public override void OnPlayerLeftRoom(Player otherPlayer)
+    // {
+    //     base.OnPlayerLeftRoom(otherPlayer);
+    //     if(otherPlayer == photonView.Owner)
+    //     {
+    //         Debug.Log(photonView.Owner.NickName + " object owner");
+    //         PhotonNetwork.Destroy(gameObject);
+    //     }
+    // }
+
+    public override void OnMasterClientSwitched(Player newMasterClient)
+    {
+        base.OnMasterClientSwitched(newMasterClient);
+        
     }
 }

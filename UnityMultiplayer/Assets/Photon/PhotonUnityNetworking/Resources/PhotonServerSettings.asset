@@ -48,6 +48,8 @@ MonoBehaviour:
   - Explode
   - Die
   - GameOver
+  - RespawnCharacter
+  - GetNextPowerUpSpawnPosition
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
