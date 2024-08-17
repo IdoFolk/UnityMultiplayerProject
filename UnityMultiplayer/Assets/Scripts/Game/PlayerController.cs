@@ -54,6 +54,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
         }
     }
 
+    public void DisablePlayer()
+    {
+        movementEnabled = false;
+    }
     private void FixedUpdate()
     {
         lifetimeTimer += Time.fixedDeltaTime;
@@ -136,6 +140,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             Debug.Log($"Player {photonView.Owner.ActorNumber} died");
         }
     }
+    
+    
 
     [PunRPC]
     private void GameOver()
@@ -195,18 +201,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
+        Debug.Log($"Player {photonView.Owner.ActorNumber} PowerUp applied: {type}");
     }
 
-    public override void OnPlayerLeftRoom(Player otherPlayer)
-    {
-        base.OnPlayerLeftRoom(otherPlayer);
-        Debug.Log(otherPlayer.NickName + " has left the room");
-        if(otherPlayer == photonView.Owner)
-        {
-            Debug.Log(photonView.Owner.NickName + " object owner");
-            PhotonNetwork.Destroy(gameObject);
-        }
-    }
+    // public override void OnPlayerLeftRoom(Player otherPlayer)
+    // {
+    //     base.OnPlayerLeftRoom(otherPlayer);
+    //     if(otherPlayer == photonView.Owner)
+    //     {
+    //         Debug.Log(photonView.Owner.NickName + " object owner");
+    //         PhotonNetwork.Destroy(gameObject);
+    //     }
+    // }
 
     public override void OnMasterClientSwitched(Player newMasterClient)
     {

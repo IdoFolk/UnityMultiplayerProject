@@ -92,6 +92,35 @@ public class ChatManager : MonoBehaviourPunCallbacks, IPointerEnterHandler, IPoi
 
     #endregion
 
+    #region Callbacks
+    
+    public override void OnMasterClientSwitched(Player newMasterClient)
+    {
+        base.OnMasterClientSwitched(newMasterClient);
+        var message = newMasterClient.NickName + " is the new master client!";
+        var color = GameNetworkManager.CharacterColor.ToRGBHex();
+        photonView.RPC(nameof(RecieveChatMessage), RpcTarget.All, message, color);
+        
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        base.OnPlayerEnteredRoom(newPlayer);
+        var message = newPlayer.NickName + " has joined the room";
+        var color = GameNetworkManager.CharacterColor.ToRGBHex();
+        photonView.RPC(nameof(RecieveChatMessage), RpcTarget.All, message, color);
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        base.OnPlayerLeftRoom(otherPlayer);
+        var message = otherPlayer.NickName + " has left the room";
+        var color = GameNetworkManager.CharacterColor.ToRGBHex();
+        photonView.RPC(nameof(RecieveChatMessage), RpcTarget.All, message, color);
+    }
+
+    #endregion
+
     private void Update()
     {
         if (Input.GetMouseButtonDown(0) && !_mouseOnUI && _chatIsOpen) CloseChat();
@@ -107,14 +136,6 @@ public class ChatManager : MonoBehaviourPunCallbacks, IPointerEnterHandler, IPoi
         _mouseOnUI = false;
     }
 
-    public override void OnMasterClientSwitched(Player newMasterClient)
-    {
-        base.OnMasterClientSwitched(newMasterClient);
-        var message = newMasterClient.NickName + " is the new master client!";
-        var color = GameNetworkManager.CharacterColor.ToRGBHex();
-        photonView.RPC(nameof(RecieveChatMessage), RpcTarget.All, message, color);
-        
-    }
 }
 
 public readonly struct ChatMessage

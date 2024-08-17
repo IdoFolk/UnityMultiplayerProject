@@ -1,16 +1,19 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using ExitGames.Client.Photon;
 using Photon.Pun;
+using Photon.Realtime;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Random = System.Random;
 
 
-public class GameNetworkManager : MonoBehaviourPun
+public class GameNetworkManager : MonoBehaviourPunCallbacks
 {
     #region Singleton
 
@@ -34,6 +37,7 @@ public class GameNetworkManager : MonoBehaviourPun
     [SerializeField] private GameObject chatPanel;
     [SerializeField] private CharacterPick[] characterPicks;
     [SerializeField] private List<Transform> powerupSpawnPositions;
+    [SerializeField] private Button grantMasterClientButton;
     private Vector3 nextPowerUpSpawnPosition;
     [field: SerializeField] public Transform TrailObjectsParent { get; private set; }
     public static int CharacterPickedID;
@@ -58,8 +62,9 @@ public class GameNetworkManager : MonoBehaviourPun
 
     private void Start()
     {
-        PhotonNetwork.CurrentRoom.PlayerTtl = 1;
+        PhotonNetwork.CurrentRoom.PlayerTtl = 30;
         chatPanel.SetActive(false);
+        grantMasterClientButton.gameObject.SetActive(false);
         for (int i = 0; i < characterPicks.Length; i++)
         {
             characterPicks[i].ID = i;
@@ -80,7 +85,49 @@ public class GameNetworkManager : MonoBehaviourPun
         SpawnCharacter(CharacterPickedID, characterColor);
         OnStartGame();
     }
+    
+    public void GrantMasterClientToNextPlayer()
+    {
+        if (!PhotonNetwork.IsMasterClient) return;
+        
+        if (PhotonNetwork.CurrentRoom.PlayerCount == 1) return;
+        
+        var nextPlayer = PhotonNetwork.CurrentRoom.Players
+            .Values
+            .FirstOrDefault(player => player.ActorNumber == PhotonNetwork.LocalPlayer.ActorNumber + 1) ?? PhotonNetwork.CurrentRoom.Players
+            .Values
+            .First(player => player.ActorNumber != PhotonNetwork.LocalPlayer.ActorNumber);
 
+        PhotonNetwork.SetMasterClient(nextPlayer);
+    }
+
+    #region PunCallbacks
+
+    public override void OnMasterClientSwitched(Photon.Realtime.Player newMasterClient)
+    {
+        Debug.Log($"Player #{newMasterClient.ActorNumber} is now the Room Manager");
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            grantMasterClientButton.gameObject.SetActive(true);
+            StartCoroutine(SpawnPowerupsCoroutine);
+        }
+        else
+        {
+            grantMasterClientButton.gameObject.SetActive(false);
+        }
+    }
+
+    // public override void OnPlayerLeftRoom(Player otherPlayer)
+    // {
+    //     base.OnPlayerLeftRoom(otherPlayer);
+    //     if(otherPlayer != PhotonNetwork.LocalPlayer) return;
+    //     currentPlayer.DisablePlayer();
+    // }
+
+    #endregion
+
+    #region RPCs
 
     [PunRPC]
     private void SendCharacterPicked(int CharacterPickedID, string characterColor, PhotonMessageInfo messageInfo)
@@ -107,31 +154,6 @@ public class GameNetworkManager : MonoBehaviourPun
                 character.Take();
             }
         }
-    }
-
-    private void SpawnCharacter(int characterId, Color characterColor)
-    {
-        if (spawnedTrailObjects.Count > 0)
-        {
-            spawnedTrailObjects.Clear();
-        }
-
-        CharacterPickedID = characterId;
-        CharacterColor = characterColor;
-        characterPickPanel.gameObject.SetActive(false);
-        Vector3 spawnPosition = CharacterPickedID switch
-        {
-            0 => new Vector3(10, 0, 0),
-            1 => new Vector3(-10, 0, 0),
-            2 => new Vector3(0, 0, 10),
-            3 => new Vector3(0, 0, -10),
-            _ => new Vector3(0, 0, 0)
-        };
-        PlayerController player = PhotonNetwork.Instantiate(PlayerPrefabName, spawnPosition, Quaternion.identity,
-            group: 0, new object[] { ColorUtility.ToHtmlStringRGB(characterColor) }).GetComponent<PlayerController>();
-        player.SetManager(this);
-        chatPanel.SetActive(true);
-        currentPlayer = player;
     }
 
     [PunRPC]
@@ -166,6 +188,32 @@ public class GameNetworkManager : MonoBehaviourPun
         nextPowerUpSpawnPosition = position;
     }
 
+    #endregion
+    private void SpawnCharacter(int characterId, Color characterColor)
+    {
+        if (spawnedTrailObjects.Count > 0)
+        {
+            spawnedTrailObjects.Clear();
+        }
+
+        CharacterPickedID = characterId;
+        CharacterColor = characterColor;
+        characterPickPanel.gameObject.SetActive(false);
+        Vector3 spawnPosition = CharacterPickedID switch
+        {
+            0 => new Vector3(10, 0, 0),
+            1 => new Vector3(-10, 0, 0),
+            2 => new Vector3(0, 0, 10),
+            3 => new Vector3(0, 0, -10),
+            _ => new Vector3(0, 0, 0)
+        };
+        PlayerController player = PhotonNetwork.Instantiate(PlayerPrefabName, spawnPosition, Quaternion.identity,
+            group: 0, new object[] { ColorUtility.ToHtmlStringRGB(characterColor) }).GetComponent<PlayerController>();
+        player.SetManager(this);
+        chatPanel.SetActive(true);
+        currentPlayer = player;
+    }
+
     private void OnStartGame()
     {
         /*if (!PhotonNetwork.IsMasterClient)
@@ -174,7 +222,7 @@ public class GameNetworkManager : MonoBehaviourPun
         }*/
 
         SpawnPowerupsCoroutine = SpawnPowerUps();
-        StartCoroutine(SpawnPowerupsCoroutine);
+        OnMasterClientSwitched(PhotonNetwork.MasterClient);
     }
     
     /// <summary>
@@ -186,7 +234,7 @@ public class GameNetworkManager : MonoBehaviourPun
     {
         while (true)
         {
-            
+            if (!PhotonNetwork.IsMasterClient) yield return null;
             if (PhotonNetwork.IsMasterClient)
             {
                 var nextPowerUpSpawnPositiontemp = powerupSpawnPositions[UnityEngine.Random.Range(0, powerupSpawnPositions.Count)].position;
@@ -213,5 +261,6 @@ public class GameNetworkManager : MonoBehaviourPun
     public void LeaveRoom()
     {
         PhotonNetwork.LeaveRoom();
+        SceneManager.LoadScene(0);
     }
 }
