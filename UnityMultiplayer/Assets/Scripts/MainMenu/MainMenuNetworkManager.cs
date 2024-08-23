@@ -1,3 +1,4 @@
+using System;
 using Photon.Pun;
 using TMPro;
 using UnityEngine;
@@ -40,8 +41,25 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     private string defaultRoomName = "DefaultRoom";
     private string gameSceneName = "GameScene";
     
-    private Dictionary<string,int> roomListInfo = new Dictionary<string, int>(); //<RoomName, PlayerCount>
+    private int maxPlayerNumberInRoom = 3;
     
+    private Dictionary<string,float> roomListInfo = new Dictionary<string, float>(); //<RoomName, PlayerCount>
+
+    private void Awake()
+    {
+        RoomPlayerNumberSlider.OnMaxPlayerNumberChanged += SetMaxPlayerNumberText;
+    }
+
+    private void OnDestroy()
+    {
+        RoomPlayerNumberSlider.OnMaxPlayerNumberChanged -= SetMaxPlayerNumberText;
+    }
+
+    private void SetMaxPlayerNumberText(int obj)
+    {
+        maxPlayerNumberInRoom = obj;
+    }
+
     private void Start()
     {
         joinLobbyButton.interactable = false;
@@ -103,7 +121,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     {
         RoomOptions roomOptions = new RoomOptions()
         {
-            MaxPlayers = 4,
+            MaxPlayers = maxPlayerNumberInRoom,
         };
         if(roomName.Length >= 1)
             PhotonNetwork.CreateRoom(roomName,roomOptions);
@@ -194,7 +212,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     public override void OnRoomListUpdate(List<RoomInfo> roomList)
     {
         base.OnRoomListUpdate(roomList);
-        Dictionary<string,int> roomListInfoCopy = new Dictionary<string, int>(roomListInfo);
+        Dictionary<string,float> roomListInfoCopy = new Dictionary<string, float>(roomListInfo);
         foreach (var newRoomInfo in roomList)
         {
             bool roomIsNew = true;
@@ -208,14 +226,14 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
             }
             if (roomIsNew)
             {
-                roomListInfo.Add(newRoomInfo.Name, newRoomInfo.PlayerCount);
+                roomListInfo.Add(newRoomInfo.Name, newRoomInfo.PlayerCount + newRoomInfo.MaxPlayers/10f);
             }
         }
     
         lobbyRoomsInfo.text = " ";
-        foreach (KeyValuePair<string, int> roomInfo in roomListInfo)
+        foreach (KeyValuePair<string, float> roomInfo in roomListInfo)
         {
-            lobbyRoomsInfo.text += roomInfo.Key + " Players: " + roomInfo.Value + "/4" + "\n";
+            lobbyRoomsInfo.text += roomInfo.Key + " Players: " + (int)roomInfo.Value + "/" + roomInfo.Value % 1 * 10 + "\n";
         }
     }
     
@@ -239,8 +257,6 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
             PhotonNetwork.LoadLevel(gameSceneName);
         }
     }
-
-    
 
     private void ToggleJoinRoomButtonsState(bool active)
     {
