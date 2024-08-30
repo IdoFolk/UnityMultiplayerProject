@@ -52,10 +52,6 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     private const string GET_NEXT_POWERUP_SPAWN_POSITION = nameof(GetNextPowerUpSpawnPosition);
 
     private const string GameOverRPC = "GameOver";
-    //private const string SPAWN_CHARACTER = nameof(SpawnCharacter);
-
-    private List<GameObject> spawnedTrailObjects = new List<GameObject>();
-    public void AddTrailObjectsToList(List<GameObject> trailObjects) => spawnedTrailObjects.AddRange(trailObjects);
 
     private IEnumerator SpawnPowerupsCoroutine;
 
@@ -169,10 +165,6 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     public void GameOver()
     {
         //StopCoroutine(SpawnPowerupsCoroutine);
-        foreach (var trailObject in spawnedTrailObjects)
-        {
-            PhotonNetwork.Destroy(trailObject);
-        }
 
         if (null != currentPlayer)
         {
@@ -191,10 +183,6 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     #endregion
     private void SpawnCharacter(int characterId, Color characterColor)
     {
-        if (spawnedTrailObjects.Count > 0)
-        {
-            spawnedTrailObjects.Clear();
-        }
 
         CharacterPickedID = characterId;
         CharacterColor = characterColor;

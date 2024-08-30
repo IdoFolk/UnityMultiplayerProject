@@ -3,7 +3,9 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - PlayerCollision
+  - PowerUp
   layers:
   - Default
   - TransparentFX
@@ -40,6 +42,15 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Background
+    uniqueID: 1696182415
+    locked: 0
+  - name: Player
+    uniqueID: 61286941
+    locked: 0
+  - name: Foreground
+    uniqueID: 2666307057
     locked: 0
   m_RenderingLayers:
   - Default

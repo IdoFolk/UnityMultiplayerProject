@@ -10,20 +10,26 @@ using Random = UnityEngine.Random;
 
 public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 {    
-    private const string TrailObjectName = "Prefabs\\TrailObject";
+    private const string TrailObjectName = "Prefabs\\TrailPrefab";
     private const string TrailObjectTag = "Trail";
     private const string DeathRPC = "Die";
     private const string GameOverRPC = "GameOver";
     
     [SerializeField] private float speed = 10;
     [SerializeField] private float rotationSpeed = 90f;
+    [field: SerializeField] private float gapTimer = 3f;
+    [field: SerializeField] private float gapDuration = 0.75f;
     [SerializeField] private Color playerColor;
-    [SerializeField] private MeshRenderer meshRenderer;
+    [SerializeField] private SpriteRenderer spriteRenderer;
+    [SerializeField] private TrailCollider trailPrefab;
+    
+    private TrailCollider currentTrailPrefab;
 
-    private List<GameObject> trailObjects;
+    private List<GameObject> trails;
 
     private GameNetworkManager manager;
     private Transform trailObjectsParent;
+    private float _gapCountdownTimer;
 
     public void SetManager(GameNetworkManager gameNetworkManager)
     {
@@ -37,20 +43,19 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
     private bool movementEnabled = true;
     
     private Camera cachedCamera;
-    private Rigidbody _rigidbody;
-    private Vector3 raycastPos;
-    private Vector3 movementVector = new Vector3();
+    private Rigidbody2D rb2d;
     private IEnumerator trailCoroutine;
+    private float horizontalInput;
     
     private void Start()
     {
         if (photonView.IsMine)
         {
-            _rigidbody = GetComponent<Rigidbody>();
+            rb2d = GetComponent<Rigidbody2D>();
             cachedCamera = Camera.main;
-            trailObjects = new List<GameObject>();
-            trailCoroutine = LeaveTrail();
-            StartCoroutine(trailCoroutine);
+            _gapCountdownTimer = gapTimer;
+            trails = new List<GameObject>();
+            SpawnTrail();
         }
     }
 
@@ -58,25 +63,53 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
     {
         movementEnabled = false;
     }
-    private void FixedUpdate()
+
+    private void Update()
     {
-        lifetimeTimer += Time.fixedDeltaTime;
-        //constantly moves the player forward
         if (photonView.IsMine && movementEnabled)
         {
-            _rigidbody.linearVelocity = transform.forward * (speed); 
+            horizontalInput = Input.GetAxis("Horizontal");
+            transform.Rotate(Vector3.forward * (-horizontalInput * rotationSpeed * Time.fixedDeltaTime), Space.Self);
+            if (_gapCountdownTimer > 0 && currentTrailPrefab != null)
+            {
+                currentTrailPrefab.UpdateTrail();
             
-            //rotates the player left or right when he presses the arrow keys
-            if (Input.GetKey(KeyCode.LeftArrow))
-            {
-                transform.Rotate(Vector3.up, -rotationSpeed * Time.fixedDeltaTime, Space.World);
+                _gapCountdownTimer -= Time.deltaTime;
+                if (_gapCountdownTimer <= 0)
+                {
+                    StartCoroutine(DetachTrail());
+                }
             }
-        
-            if (Input.GetKey(KeyCode.RightArrow))
-            {
-                transform.Rotate(Vector3.up, rotationSpeed * Time.fixedDeltaTime, Space.World);
-            }
+            
         }
+    }
+
+    private void FixedUpdate()
+    {
+        if (photonView.IsMine)
+        {
+            if (movementEnabled)
+                rb2d.velocity = transform.up * (speed * Time.fixedDeltaTime);
+            else
+                rb2d.velocity = Vector2.zero;
+        }
+    }
+    
+    private IEnumerator DetachTrail()
+    {
+        currentTrailPrefab = null;
+        yield return new WaitForSeconds(gapDuration);
+        SpawnTrail();
+        _gapCountdownTimer = gapTimer;
+    }
+
+    private void SpawnTrail()
+    {
+        currentTrailPrefab = Instantiate(trailPrefab, Vector3.zero, quaternion.identity);
+        /*currentTrailPrefab = PhotonNetwork.Instantiate(TrailObjectName, transform.position, quaternion.identity, 0,
+            new object []{ ColorUtility.ToHtmlStringRGB(playerColor)}).GetComponent<TrailCollider>();*/
+        currentTrailPrefab.player = transform;
+        trails.Add(currentTrailPrefab.gameObject);
     }
     
     /// <summary>
@@ -92,7 +125,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             GameObject trailObject = PhotonNetwork.Instantiate(TrailObjectName,
                 transform.position - transform.forward.normalized * 1.4f, quaternion.identity, 0,
                 new object []{ ColorUtility.ToHtmlStringRGB(playerColor)});
-            trailObjects.Add(trailObject);
+            trails.Add(trailObject);
             
             trailCount++;
             if (trailCount > 20)
@@ -105,18 +138,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
         }
     }
 
-    /// <summary>
-    /// When collides with something, destroys itself and reports its destruction to all other clients.
-    /// </summary>
-    /// <param name="other"></param>
-    /// <exception cref="NotImplementedException"></exception>
-    private void OnCollisionEnter(Collision other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (lifetimeTimer < 3)
-        {
-            return;
-        }
-        if (photonView.IsMine)
+        Debug.Log("Collision");
+        if (photonView.IsMine && other.CompareTag("PlayerCollision"))
         {
             //photonView.RPC(DeathRPC, RpcTarget.All, photonView.Owner.ActorNumber);
             Die(photonView.Owner.ActorNumber);
@@ -135,7 +160,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             {
                 photonView.RPC(GameOverRPC, RpcTarget.All);
             }
-            manager.AddTrailObjectsToList(trailObjects);
             PhotonNetwork.Destroy(gameObject);
             Debug.Log($"Player {photonView.Owner.ActorNumber} died");
         }
@@ -158,22 +182,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
     }*/
     
     
-    /// <summary>
-    /// Why is player color data not reading correctly??? Plz help
-    /// </summary>
-    /// <param name="info"></param>
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
         object[] instantiationData = info.photonView.InstantiationData;
         if (ColorUtility.TryParseHtmlString("#"+(string)instantiationData[0], out Color color))
         {
             playerColor = color;
-            meshRenderer.material.color = color;
-            //Debug.Log($"Player color changed to {color}.");
-        }
-        else
-        {
-            //Debug.Log("Error with player color data.");
+            spriteRenderer.color = color;
         }
     }
 
