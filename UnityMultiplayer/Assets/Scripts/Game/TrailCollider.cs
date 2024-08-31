@@ -5,10 +5,11 @@ using Photon.Pun;
 using UnityEngine;
  
 [RequireComponent(typeof(LineRenderer))]
-public class TrailCollider : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
+public class TrailCollider : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback, IPunObservable
 {
     [SerializeField] private float pointSpacing = 0.05f;
     public Transform player { get; set; }
+    public Transform parent { get; set; }
     private LineRenderer myTrail;
     private EdgeCollider2D myCollider;
     private List<Vector2> points;
@@ -19,7 +20,10 @@ public class TrailCollider : MonoBehaviourPunCallbacks, IPunInstantiateMagicCall
         myTrail = GetComponent<LineRenderer>();
         myCollider = GetComponent<EdgeCollider2D>();
         points = new List<Vector2>();
-        SetPoint();
+        if (photonView.IsMine)
+        {
+            SetPoint();
+        }
     }
 
     public void UpdateTrail()
@@ -55,5 +59,38 @@ public class TrailCollider : MonoBehaviourPunCallbacks, IPunInstantiateMagicCall
         {
             //Debug.Log("Error with trail color data.");
         }
+
+        transform.parent = GameNetworkManager.Instance.TrailObjectsParent;
+    }
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+        if (trailAbandoned) return;
+        if (stream.IsWriting)
+        {
+            //We own this trail: send the others our data
+            stream.SendNext(points);
+        }
+        else
+        {
+            points = (List<Vector2>)stream.ReceiveNext();
+            if (points.Count > 1)
+            {
+                myCollider.SetPoints(points.SkipLast(1).ToList());
+            }
+
+            int prevPosCount = myTrail.positionCount;
+            myTrail.positionCount = points.Count;
+            for (int i = prevPosCount; i < myTrail.positionCount; i++)
+            {
+                myTrail.SetPosition(i, points[i]);
+            }
+        }
+    }
+
+    private bool trailAbandoned = false;
+    public void StopUpdatingTrail()
+    {
+        trailAbandoned = true;
     }
 }

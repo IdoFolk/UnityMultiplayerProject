@@ -5,6 +5,7 @@ using System.Linq;
 using ExitGames.Client.Photon;
 using Photon.Pun;
 using Photon.Realtime;
+using TMPro;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -38,6 +39,8 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     [SerializeField] private CharacterPick[] characterPicks;
     [SerializeField] private List<Transform> powerupSpawnPositions;
     [SerializeField] private Button grantMasterClientButton;
+    [SerializeField] private Button startRoundButton;
+    [SerializeField] private TMP_Text nicknameText;
     private Vector3 nextPowerUpSpawnPosition;
     [field: SerializeField] public Transform TrailObjectsParent { get; private set; }
     public static int CharacterPickedID;
@@ -49,37 +52,41 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     private const string CLIENT_PICKED_CHARACTER = nameof(SendCharacterPicked);
     private const string CHARACTER_WAS_PICKED = nameof(CharacterWasPicked);
     private const string RESPAWN_CHARACTER = nameof(RespawnCharacter);
+    private const string GAME_STARTED = nameof(GameStarted);
     private const string GET_NEXT_POWERUP_SPAWN_POSITION = nameof(GetNextPowerUpSpawnPosition);
 
     private const string GameOverRPC = "GameOver";
 
     private IEnumerator SpawnPowerupsCoroutine;
 
+    private int pickedPlayerCounter;
+
 
     private void Start()
     {
         PhotonNetwork.CurrentRoom.PlayerTtl = 30;
         chatPanel.SetActive(false);
-        grantMasterClientButton.gameObject.SetActive(false);
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            grantMasterClientButton.gameObject.SetActive(false);
+            startRoundButton.gameObject.SetActive(false);
+        }
+        startRoundButton.interactable = false;
+        pickedPlayerCounter = 0;
         for (int i = 0; i < characterPicks.Length; i++)
         {
             characterPicks[i].ID = i;
             characterPicks[i].OnPick += SendCharacterPickedToMaster;
         }
     }
-
-    /// <summary>
-    /// TODO: Move the SpawnCharacter function to another function THAT ONLY OCCURS ONCE ALL PLAYERS HAVE CHOSEN THEIR CHARACTERS.
-    /// TODO: THEN, AND ONLY THEN, CALL THE "StartGame" FUNCTION ON THE MASTER CLIENT, TO SPAWN CHARACTERS FOR EACH PLAYER AND START SPAWNING POWERUPS.
-    /// </summary>
-    /// <param name="CharacterPickedID"></param>
-    /// <param name="characterColor"></param>
+    
     public void SendCharacterPickedToMaster(int CharacterPickedID, Color characterColor)
     {
         photonView.RPC(CLIENT_PICKED_CHARACTER, RpcTarget.MasterClient, CharacterPickedID, characterColor.ToRGBHex());
-        //temp position for both functions
         SpawnCharacter(CharacterPickedID, characterColor);
-        OnStartGame();
+        nicknameText.color = characterColor;
+        nicknameText.text = $"Playing as: {PhotonNetwork.NickName}";
+        characterPickPanel.SetActive(false);
     }
     
     public void GrantMasterClientToNextPlayer()
@@ -106,35 +113,30 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
         {
             grantMasterClientButton.gameObject.SetActive(true);
+            startRoundButton.gameObject.SetActive(true);
             StartCoroutine(SpawnPowerupsCoroutine);
         }
         else
         {
             grantMasterClientButton.gameObject.SetActive(false);
+            startRoundButton.gameObject.SetActive(false);
         }
     }
-
-    // public override void OnPlayerLeftRoom(Player otherPlayer)
-    // {
-    //     base.OnPlayerLeftRoom(otherPlayer);
-    //     if(otherPlayer != PhotonNetwork.LocalPlayer) return;
-    //     currentPlayer.DisablePlayer();
-    // }
 
     #endregion
 
     #region RPCs
 
     [PunRPC]
-    private void SendCharacterPicked(int CharacterPickedID, string characterColor, PhotonMessageInfo messageInfo)
+    private void SendCharacterPicked(int pickedID, string characterColor, PhotonMessageInfo messageInfo)
     {
-        Debug.Log("Master SendCharacterPicked: " + CharacterPickedID);
+        Debug.Log("Master SendCharacterPicked: " + pickedID);
         foreach (var character in characterPicks)
         {
-            if (CharacterPickedID == character.ID && !character.IsTaken)
+            if (pickedID == character.ID && !character.IsTaken)
             {
                 //photonView.RPC(SPAWN_CHARACTER, messageInfo.Sender, CharacterPickedID,characterColor);
-                photonView.RPC(CHARACTER_WAS_PICKED, RpcTarget.All, CharacterPickedID);
+                photonView.RPC(CHARACTER_WAS_PICKED, RpcTarget.All, pickedID);
             }
         }
     }
@@ -143,12 +145,29 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     private void CharacterWasPicked(int CharacterPickedID)
     {
         Debug.Log("CharacterWasPicked: " + CharacterPickedID);
-        foreach (var character in characterPicks)
+        foreach (var characterPick in characterPicks)
         {
-            if (CharacterPickedID == character.ID)
+            if (CharacterPickedID == characterPick.ID)
             {
-                character.Take();
+                characterPick.Take();
             }
+        }
+
+        pickedPlayerCounter++;
+        if (pickedPlayerCounter >= PhotonNetwork.CurrentRoom.PlayerCount)
+        {
+            startRoundButton.interactable = true;
+        }
+    }
+
+    [PunRPC]
+    private void GameStarted()
+    {
+        currentPlayer.EnablePlayer();
+        SpawnPowerupsCoroutine = SpawnPowerUps();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            StartCoroutine(SpawnPowerupsCoroutine);
         }
     }
 
@@ -171,7 +190,9 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
             PhotonNetwork.Destroy(currentPlayer.gameObject);
         }
 
+        //TODO: change this temp
         photonView.RPC(RESPAWN_CHARACTER, RpcTarget.All);
+        startRoundButton.interactable = true;
     }
 
     [PunRPC]
@@ -181,36 +202,78 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     }
 
     #endregion
+    
     private void SpawnCharacter(int characterId, Color characterColor)
     {
-
         CharacterPickedID = characterId;
         CharacterColor = characterColor;
         characterPickPanel.gameObject.SetActive(false);
-        Vector3 spawnPosition = CharacterPickedID switch
+        Vector3 spawnPosition;
+        Quaternion spawnRotation;
+        switch (CharacterPickedID)
         {
-            0 => new Vector3(10, 0, 0),
-            1 => new Vector3(-10, 0, 0),
-            2 => new Vector3(0, 0, 10),
-            3 => new Vector3(0, 0, -10),
-            _ => new Vector3(0, 0, 0)
-        };
-        PlayerController player = PhotonNetwork.Instantiate(PlayerPrefabName, spawnPosition, Quaternion.identity,
+            case 0:
+            {
+                spawnPosition = new Vector3(-8, 4, 0);
+                spawnRotation = Quaternion.LookRotation(Vector2.right);
+                break;
+            }
+            case 1:
+            {
+                spawnPosition = new Vector3(8, -4, 0);
+                spawnRotation = Quaternion.LookRotation(Vector2.left);
+                break;
+            }
+            case 2:
+            {
+                spawnPosition = new Vector3(-8, -4, 0);
+                spawnRotation = Quaternion.LookRotation(Vector2.right);
+                break;
+            }
+            case 3:
+            {
+                spawnPosition = new Vector3(8, 4, 0);
+                spawnRotation = Quaternion.LookRotation(Vector2.left);
+                break;
+            }
+            case 4:
+            {
+                spawnPosition = new Vector3(0, -8, 0);
+                spawnRotation = Quaternion.LookRotation(Vector2.up);
+                break;
+            }
+            case 5:
+            {
+                spawnPosition = new Vector3(0, 8, 0);
+                spawnRotation = Quaternion.LookRotation(Vector2.down);
+                break;
+            }
+            default: 
+            {
+                spawnPosition = new Vector3(0, 0, 0);
+                spawnRotation = Quaternion.LookRotation(Vector2.up);
+                break;
+            }
+        }
+        
+        PlayerController player = PhotonNetwork.Instantiate(PlayerPrefabName, spawnPosition, spawnRotation,
             group: 0, new object[] { ColorUtility.ToHtmlStringRGB(characterColor) }).GetComponent<PlayerController>();
         player.SetManager(this);
         chatPanel.SetActive(true);
         currentPlayer = player;
     }
 
-    private void OnStartGame()
+    /// <summary>
+    /// TODO: ADD COUNTDOWN FOR ALL PLAYERS
+    /// </summary>
+    public void StartGameButtonOnClick()
     {
-        /*if (!PhotonNetwork.IsMasterClient)
+        if (PhotonNetwork.IsMasterClient)
         {
-            return;
-        }*/
+            photonView.RPC(GAME_STARTED, RpcTarget.All);
+        }
 
-        SpawnPowerupsCoroutine = SpawnPowerUps();
-        OnMasterClientSwitched(PhotonNetwork.MasterClient);
+        startRoundButton.interactable = false;
     }
     
     /// <summary>
@@ -229,7 +292,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
                 photonView.RPC(GET_NEXT_POWERUP_SPAWN_POSITION, RpcTarget.All, nextPowerUpSpawnPositiontemp);
             }
             
-            yield return new WaitForSeconds(2f);
+            yield return new WaitForSeconds(5f);
             
             if (PhotonNetwork.IsMasterClient)
             {   

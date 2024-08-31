@@ -187,9 +187,10 @@ GameObject:
   - component: {fileID: 1889346310928682184}
   - component: {fileID: 3578895067021729331}
   - component: {fileID: 556148398391317224}
+  - component: {fileID: 4668362976594585577}
   - component: {fileID: 1350419371711950777}
   - component: {fileID: 6638819031669025532}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: PlayerHead
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -226,8 +227,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 75
   rotationSpeed: 180
-  gapTimer: 3
+  gapTimer: 5
   gapDuration: 0.75
+  TrailLayer:
+    serializedVersion: 2
+    m_Bits: 320
+  BorderLayer:
+    serializedVersion: 2
+    m_Bits: 512
   playerColor: {r: 0.7294118, g: 0.1568627, b: 0.1568627, a: 1}
   spriteRenderer: {fileID: 4198766722532232514}
   trailPrefab: {fileID: 5110041398849702075, guid: 945a1686b22055d4c9b1596d589c1d3f, type: 3}
@@ -274,7 +281,7 @@ CircleCollider2D:
     m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 512
   m_LayerOverridePriority: 0
   m_ForceSendLayers:
     serializedVersion: 2
@@ -284,10 +291,46 @@ CircleCollider2D:
     m_Bits: 4294967295
   m_ContactCaptureLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 503
   m_CallbackLayers:
     serializedVersion: 2
+    m_Bits: 503
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.5
+--- !u!58 &4668362976594585577
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5573367055673617849}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 512
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 503
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
     m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 512
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 512
   m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
@@ -324,8 +367,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_SynchronizeVelocity: 1
   m_SynchronizeAngularVelocity: 1
-  m_TeleportEnabled: 0
-  m_TeleportIfDistanceGreaterThan: 3
+  m_TeleportEnabled: 1
+  m_TeleportIfDistanceGreaterThan: 8
 --- !u!1 &6154817553422661327
 GameObject:
   m_ObjectHideFlags: 0
