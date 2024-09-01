@@ -12,11 +12,10 @@ GameObject:
   - component: {fileID: 1660376273052235297}
   - component: {fileID: 5110041398849702075}
   - component: {fileID: 5573591389237480779}
-  - component: {fileID: 4924930057831944895}
   - component: {fileID: 7744509750222209505}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: TrailPrefab
-  m_TagString: Untagged
+  m_TagString: PlayerCollision
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -153,8 +152,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7630c713fe1eab24dbedf68be2ff1fa2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  player: {fileID: 0}
-  pointSpacing: 0.07
+  pointSpacing: 0.08
+  myTrail: {fileID: 1660376273052235297}
+  myCollider: {fileID: 5573591389237480779}
 --- !u!68 &5573591389237480779
 EdgeCollider2D:
   m_ObjectHideFlags: 0
@@ -196,22 +196,6 @@ EdgeCollider2D:
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!114 &4924930057831944895
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8508980584093826204}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 627855c7f81362d41938ffe0b1475957, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_SynchronizePosition: 1
-  m_SynchronizeRotation: 1
-  m_SynchronizeScale: 1
-  m_UseLocal: 1
 --- !u!114 &7744509750222209505
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -231,7 +215,7 @@ MonoBehaviour:
   OwnershipTransfer: 0
   observableSearch: 2
   ObservedComponents:
-  - {fileID: 4924930057831944895}
+  - {fileID: 5110041398849702075}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0

@@ -22,21 +22,12 @@ public class PowerUp : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
         public Sprite icon;
     }
 
-    public static float PowerUpDuration = 5f;
+    public static float PowerUpDuration = 7f;
     
-    private PowerUpType type;
+    public PowerUpType type { get; private set; }
+    public int viewID { get; private set; }
     [SerializeField] SpriteRenderer _spriteRenderer;
     [SerializeField] private List<PowerUpTypeIcon> typeIcons;
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player") && other.GetComponent<PhotonView>().IsMine && other.TryGetComponent(out PlayerController playerController))
-        {
-            playerController.ApplyPowerUp(type);
-            PhotonNetwork.Destroy(gameObject);
-        }
-    }
-
 
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
@@ -44,12 +35,13 @@ public class PowerUp : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
         if (instantiationData[0] is int && (int)instantiationData[0] < Enum.GetValues(typeof(PowerUpType)).Length)
         {
             type = (PowerUpType)instantiationData[0];
-            //_spriteRenderer.sprite = 
-            //Debug.Log($"Powerup color changed to {type}.");
+            _spriteRenderer.sprite = typeIcons[(int)type].icon;
         }
         else
         {
             Debug.Log("Error with PowerUp type data.");
         }
+
+        viewID = photonView.ViewID;
     }
 }

@@ -1,17 +1,13 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using ExitGames.Client.Photon;
 using Photon.Pun;
-using Photon.Realtime;
 using TMPro;
-using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using Random = System.Random;
+using Random = UnityEngine.Random;
 
 
 public class GameNetworkManager : MonoBehaviourPunCallbacks
@@ -37,35 +33,43 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     [SerializeField] private GameObject characterPickPanel;
     [SerializeField] private GameObject chatPanel;
     [SerializeField] private CharacterPick[] characterPicks;
-    [SerializeField] private List<Transform> powerupSpawnPositions;
     [SerializeField] private Button grantMasterClientButton;
     [SerializeField] private Button startRoundButton;
     [SerializeField] private TMP_Text nicknameText;
-    private Vector3 nextPowerUpSpawnPosition;
+    [SerializeField] private SpriteRenderer ArenaBorder;
+    private Vector2 nextPowerUpSpawnPosition;
+    private TMP_Text startRoundButtonText;
     [field: SerializeField] public Transform TrailObjectsParent { get; private set; }
     public static int CharacterPickedID;
     public static Color CharacterColor;
-    public static PlayerController currentPlayer { get; private set; }
+    public PlayerController currentPlayer { get; set; }
 
     private const string PlayerPrefabName = "Prefabs\\PlayerPrefab";
     private const string PowerUpPrefabName = "Prefabs\\PowerUpPrefab";
-    private const string CLIENT_PICKED_CHARACTER = nameof(SendCharacterPicked);
-    private const string CHARACTER_WAS_PICKED = nameof(CharacterWasPicked);
-    private const string RESPAWN_CHARACTER = nameof(RespawnCharacter);
-    private const string GAME_STARTED = nameof(GameStarted);
-    private const string GET_NEXT_POWERUP_SPAWN_POSITION = nameof(GetNextPowerUpSpawnPosition);
+    
+    private const string ClientPickedCharacterRPC = nameof(SendCharacterPicked);
+    private const string CharacterSlotTakenRPC = nameof(CharacterSlotTaken);
+    private const string PreparePlayerForNewRoundRPC = nameof(PreparePlayerForNewRound);
+    private const string RoundStartedRPC = nameof(RoundStarted);
+    private const string GetNextPowerupSpawnPositionRPC = nameof(GetNextPowerUpSpawnPosition);
+    public const string DestroyPowerupRPC = nameof(DestroyPowerUp);
+    public const string GameOverRPC = nameof(GameOver);
+    public const string PlayerDeathRPC = nameof(OnPlayerDeath);
 
-    private const string GameOverRPC = "GameOver";
 
     private IEnumerator SpawnPowerupsCoroutine;
 
     private int pickedPlayerCounter;
+    private int playersAlive;
+    private bool gameEnded;
 
 
     private void Start()
     {
         PhotonNetwork.CurrentRoom.PlayerTtl = 30;
         chatPanel.SetActive(false);
+        startRoundButtonText = startRoundButton.GetComponentInChildren<TMP_Text>();
+        startRoundButtonText.text = "Start Round";
         if (!PhotonNetwork.IsMasterClient)
         {
             grantMasterClientButton.gameObject.SetActive(false);
@@ -80,13 +84,16 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         }
     }
     
-    public void SendCharacterPickedToMaster(int CharacterPickedID, Color characterColor)
+    public void SendCharacterPickedToMaster(int characterPickedID, Color characterColor)
     {
-        photonView.RPC(CLIENT_PICKED_CHARACTER, RpcTarget.MasterClient, CharacterPickedID, characterColor.ToRGBHex());
-        SpawnCharacter(CharacterPickedID, characterColor);
+        photonView.RPC(ClientPickedCharacterRPC, RpcTarget.MasterClient, characterPickedID, characterColor.ToRGBHex());
+        CharacterPickedID = characterPickedID;
+        CharacterColor = characterColor;
         nicknameText.color = characterColor;
         nicknameText.text = $"Playing as: {PhotonNetwork.NickName}";
         characterPickPanel.SetActive(false);
+        
+        PreparePlayerForNewRound();
     }
     
     public void GrantMasterClientToNextPlayer()
@@ -114,7 +121,6 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         {
             grantMasterClientButton.gameObject.SetActive(true);
             startRoundButton.gameObject.SetActive(true);
-            StartCoroutine(SpawnPowerupsCoroutine);
         }
         else
         {
@@ -136,15 +142,15 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
             if (pickedID == character.ID && !character.IsTaken)
             {
                 //photonView.RPC(SPAWN_CHARACTER, messageInfo.Sender, CharacterPickedID,characterColor);
-                photonView.RPC(CHARACTER_WAS_PICKED, RpcTarget.All, pickedID);
+                photonView.RPC(CharacterSlotTakenRPC, RpcTarget.All, pickedID);
             }
         }
     }
 
     [PunRPC]
-    private void CharacterWasPicked(int CharacterPickedID)
+    private void CharacterSlotTaken(int CharacterPickedID)
     {
-        Debug.Log("CharacterWasPicked: " + CharacterPickedID);
+        Debug.Log("CharacterSlotTaken: " + CharacterPickedID);
         foreach (var characterPick in characterPicks)
         {
             if (CharacterPickedID == characterPick.ID)
@@ -161,46 +167,71 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    private void GameStarted()
+    private void RoundStarted()
     {
         currentPlayer.EnablePlayer();
         SpawnPowerupsCoroutine = SpawnPowerUps();
-        if (PhotonNetwork.IsMasterClient)
-        {
-            StartCoroutine(SpawnPowerupsCoroutine);
-        }
+        StartCoroutine(SpawnPowerupsCoroutine);
     }
 
     [PunRPC]
-    private void RespawnCharacter()
+    private void PreparePlayerForNewRound()
     {
+        gameEnded = false;
+        startRoundButtonText.text = "Start Round";
+        playersAlive = PhotonNetwork.CurrentRoom.PlayerCount;
         SpawnCharacter(CharacterPickedID, CharacterColor);
     }
 
-    /// <summary>
-    /// Deletes all trail objects and destroys the player
-    /// </summary>
+    [PunRPC]
+    public void OnPlayerDeath(string playerNickname)
+    {
+        playersAlive--;
+        Debug.Log($"{playerNickname} Died.");
+        
+        if (PhotonNetwork.IsMasterClient && playersAlive <= 1)
+        {
+            photonView.RPC(GameOverRPC, RpcTarget.All);
+        }
+    }
+    
     [PunRPC]
     public void GameOver()
     {
-        //StopCoroutine(SpawnPowerupsCoroutine);
+        if (currentPlayer != null)
+            currentPlayer.DisablePlayer();
+        if (SpawnPowerupsCoroutine != null)
+            StopCoroutine(SpawnPowerupsCoroutine);
 
-        if (null != currentPlayer)
-        {
-            PhotonNetwork.Destroy(currentPlayer.gameObject);
-        }
-
-        //TODO: change this temp
-        photonView.RPC(RESPAWN_CHARACTER, RpcTarget.All);
+        gameEnded = true;
         startRoundButton.interactable = true;
+        startRoundButtonText.text = "Next Round";
     }
 
     [PunRPC]
-    private void GetNextPowerUpSpawnPosition(Vector3 position)
+    private void GetNextPowerUpSpawnPosition(Vector2 position)
     {
         nextPowerUpSpawnPosition = position;
     }
 
+    [PunRPC]
+    public void DestroyPowerUp(int viewID)
+    {
+        PhotonNetwork.Destroy(PhotonView.Find(viewID).gameObject);
+    }
+    #endregion
+
+    #region RPC Sendings
+
+    public void SendDestroyPowerUpRPC(int viewID)
+    {
+        photonView.RPC(DestroyPowerupRPC, RpcTarget.MasterClient, viewID);
+    }
+
+    public void SendPlayerDeathRPC()
+    {
+        photonView.RPC(PlayerDeathRPC, RpcTarget.All, PhotonNetwork.NickName);
+    }
     #endregion
     
     private void SpawnCharacter(int characterId, Color characterColor)
@@ -214,53 +245,51 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         {
             case 0:
             {
-                spawnPosition = new Vector3(-8, 4, 0);
-                spawnRotation = Quaternion.LookRotation(Vector2.right);
+                spawnPosition = new Vector3(-8, 4, 0); //top left
+                spawnRotation = Quaternion.Euler(new Vector3(0, 0, -90)); //face right
                 break;
             }
             case 1:
             {
-                spawnPosition = new Vector3(8, -4, 0);
-                spawnRotation = Quaternion.LookRotation(Vector2.left);
+                spawnPosition = new Vector3(8, -4, 0); //bottom right
+                spawnRotation = Quaternion.Euler(new Vector3(0, 0, 90)); //face left
                 break;
             }
             case 2:
             {
-                spawnPosition = new Vector3(-8, -4, 0);
-                spawnRotation = Quaternion.LookRotation(Vector2.right);
+                spawnPosition = new Vector3(-8, -4, 0); //bottom left
+                spawnRotation = Quaternion.Euler(new Vector3(0, 0, -90)); //face right
                 break;
             }
             case 3:
             {
-                spawnPosition = new Vector3(8, 4, 0);
-                spawnRotation = Quaternion.LookRotation(Vector2.left);
+                spawnPosition = new Vector3(8, 4, 0); //top right
+                spawnRotation = Quaternion.Euler(new Vector3(0, 0, 90)); //face left
                 break;
             }
             case 4:
             {
-                spawnPosition = new Vector3(0, -8, 0);
-                spawnRotation = Quaternion.LookRotation(Vector2.up);
+                spawnPosition = new Vector3(0, -8, 0); //bottom middle
+                spawnRotation = Quaternion.Euler(new Vector3(0, 0, 0)); //face up
                 break;
             }
             case 5:
             {
-                spawnPosition = new Vector3(0, 8, 0);
-                spawnRotation = Quaternion.LookRotation(Vector2.down);
+                spawnPosition = new Vector3(0, 8, 0); //top middle
+                spawnRotation = Quaternion.Euler(new Vector3(0, 0, 180)); //face down
                 break;
             }
             default: 
             {
-                spawnPosition = new Vector3(0, 0, 0);
-                spawnRotation = Quaternion.LookRotation(Vector2.up);
+                spawnPosition = new Vector3(0, 0, 0); //middle
+                spawnRotation = Quaternion.Euler(new Vector3(0, 0, 0)); //face up
                 break;
             }
         }
         
         PlayerController player = PhotonNetwork.Instantiate(PlayerPrefabName, spawnPosition, spawnRotation,
             group: 0, new object[] { ColorUtility.ToHtmlStringRGB(characterColor) }).GetComponent<PlayerController>();
-        player.SetManager(this);
         chatPanel.SetActive(true);
-        currentPlayer = player;
     }
 
     /// <summary>
@@ -270,26 +299,35 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            photonView.RPC(GAME_STARTED, RpcTarget.All);
+            if (!gameEnded) //"Start Round"
+            {
+                photonView.RPC(RoundStartedRPC, RpcTarget.All);
+                startRoundButton.interactable = false;
+            }
+            else //"Next Round"
+            {
+                CleanBoard();
+                photonView.RPC(PreparePlayerForNewRoundRPC, RpcTarget.All);
+            }
         }
 
-        startRoundButton.interactable = false;
     }
     
     /// <summary>
     /// The master client spawns random powerups at pre-determined positions every 10 seconds.
-    /// If the master client changed, the positions will be transferred to the new master
+    /// If the master client changed, the positions will be transferred to the new master.
+    /// Given that all clients run this at the same time, it should synchronize it so if the master client changes mid-round, the spawn interval won't reset.
     /// </summary>
     /// <returns></returns>
     private IEnumerator SpawnPowerUps()
     {
         while (true)
         {
-            if (!PhotonNetwork.IsMasterClient) yield return null;
+            //if (!PhotonNetwork.IsMasterClient) yield return null;
             if (PhotonNetwork.IsMasterClient)
             {
-                var nextPowerUpSpawnPositiontemp = powerupSpawnPositions[UnityEngine.Random.Range(0, powerupSpawnPositions.Count)].position;
-                photonView.RPC(GET_NEXT_POWERUP_SPAWN_POSITION, RpcTarget.All, nextPowerUpSpawnPositiontemp);
+                Vector2 nextPowerUpSpawnPositionTemp = new Vector2(Random.Range(-9f, 9f), Random.Range(-9f, 9f));
+                photonView.RPC(GetNextPowerupSpawnPositionRPC, RpcTarget.All, nextPowerUpSpawnPositionTemp);
             }
             
             yield return new WaitForSeconds(5f);
@@ -305,13 +343,21 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         }
     
     }
-    
-    
+
+    private void CleanBoard()
+    {
+        PhotonNetwork.DestroyAll();
+    }
     
     [ContextMenu("leveRoom")]
     public void LeaveRoom()
     {
         PhotonNetwork.LeaveRoom();
         SceneManager.LoadScene(0);
+    }
+
+    public void ToggleBorder(bool on)
+    {
+        ArenaBorder.gameObject.SetActive(on);
     }
 }

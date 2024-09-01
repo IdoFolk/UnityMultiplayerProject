@@ -2047,11 +2047,11 @@ Transform:
   m_GameObject: {fileID: 589753668}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.16, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1840358457}
+  m_Father: {fileID: 1580666641}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &589753670
 SpriteRenderer:
@@ -2348,11 +2348,11 @@ MonoBehaviour:
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_NormalColor: {r: 0, g: 0.6509434, b: 0.051305957, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
     m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_DisabledColor: {r: 0.7264151, g: 0.34607512, b: 0.34607512, a: 0.34117648}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
@@ -2373,7 +2373,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 6993042457145005750}
         m_TargetAssemblyTypeName: GameNetworkManager, Assembly-CSharp
-        m_MethodName: GrantMasterClientToNextPlayer
+        m_MethodName: StartGameButtonOnClick
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2596,9 +2596,10 @@ GameObject:
   m_Component:
   - component: {fileID: 898673903}
   - component: {fileID: 898673904}
-  m_Layer: 0
+  - component: {fileID: 898673905}
+  m_Layer: 9
   m_Name: Fill
-  m_TagString: Untagged
+  m_TagString: PlayerCollision
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2613,10 +2614,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.97999996, y: 0.97999996, z: 0.97999996}
-  m_ConstrainProportionsScale: 1
+  m_LocalScale: {x: 0.99, y: 0.99, z: 0.99}
+  m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1840358457}
+  m_Father: {fileID: 1580666641}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &898673904
 SpriteRenderer:
@@ -2673,6 +2674,52 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!68 &898673905
+EdgeCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 898673902}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_EdgeRadius: 0
+  m_Points:
+  - {x: 0.5, y: -0.5}
+  - {x: -0.5, y: -0.5}
+  - {x: -0.5, y: 0.5}
+  - {x: 0.5, y: 0.5}
+  - {x: 0.5, y: -0.5}
+  m_AdjacentStartPoint: {x: 0.5, y: -0.5}
+  m_AdjacentEndPoint: {x: 0, y: 0}
+  m_UseAdjacentStartPoint: 0
+  m_UseAdjacentEndPoint: 0
 --- !u!1 &927372850
 GameObject:
   m_ObjectHideFlags: 0
@@ -3474,7 +3521,9 @@ Transform:
   m_LocalScale: {x: 20, y: 20, z: 20}
   m_ConstrainProportionsScale: 1
   m_Children:
+  - {fileID: 898673903}
   - {fileID: 1840358457}
+  - {fileID: 589753669}
   m_Father: {fileID: 348556791}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1633187109
@@ -3921,9 +3970,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 589753669}
-  - {fileID: 898673903}
+  m_Children: []
   m_Father: {fileID: 1580666641}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1840358458
@@ -3988,7 +4035,7 @@ EdgeCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1840358456}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
@@ -4984,6 +5031,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8864663305651707508, guid: 603facff1218e194a957dc3d5ba73a37, type: 3}
+      propertyPath: m_OnFocusSelectAll
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8864663305651707508, guid: 603facff1218e194a957dc3d5ba73a37, type: 3}
+      propertyPath: m_OnEndEdit.m_PersistentCalls.m_Calls.Array.size
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5001,6 +5056,10 @@ PrefabInstance:
       propertyPath: chatPanel
       value: 
       objectReference: {fileID: 882264098}
+    - target: {fileID: 471793770128865515, guid: cc7194b680c7ddf4284ff031c1ae705f, type: 3}
+      propertyPath: ArenaBorder
+      value: 
+      objectReference: {fileID: 1840358458}
     - target: {fileID: 471793770128865515, guid: cc7194b680c7ddf4284ff031c1ae705f, type: 3}
       propertyPath: nicknameText
       value: 

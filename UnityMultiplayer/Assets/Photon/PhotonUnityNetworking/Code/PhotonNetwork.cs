@@ -610,7 +610,7 @@ namespace Photon.Pun
             }
         }
 
-        private static int sendFrequency = 33; // in milliseconds.
+        private static int sendFrequency = 10; // in milliseconds.
 
         /// <summary>
         /// Defines how many times per second OnPhotonSerialize should be called on PhotonViews for controlled objects.
@@ -647,7 +647,7 @@ namespace Photon.Pun
             }
         }
 
-        private static int serializationFrequency = 100; // in milliseconds. I.e. 100 = 100ms which makes 10 times/second
+        private static int serializationFrequency = 10; // in milliseconds. I.e. 100 = 100ms which makes 10 times/second
 
 
         /// <summary>
