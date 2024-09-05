@@ -15,7 +15,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     
     [Header("Panels")] 
     [SerializeField] private GameObject EnterNicknamePanel;
-    [FormerlySerializedAs("currentRoomPanel")] [SerializeField] private GameObject StartGamePanel;
+    [SerializeField] private GameObject StartGamePanel;
     [SerializeField] private GameObject lobbyInfoPanel;
     
     [Header("buttons")] 
@@ -25,7 +25,10 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     [SerializeField] private TextMeshProUGUI networkStatusText;
     [SerializeField] private TextMeshProUGUI currentRoomPlayersNumber;
     [SerializeField] private TextMeshProUGUI lobbyRoomsInfo;
-    
+
+    [Header("GameObjects")] 
+    [SerializeField] private GameObject roomListObject;
+    [SerializeField] private RoomInfoItem roomInfoItemPrefab;
      
     
     private string roomName = "";
@@ -34,8 +37,9 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     private string defaultRoomName = "DefaultRoom";
     private string gameSceneName = "GameScene";
     
-    
+    private List<RoomData> roomDataList = new List<RoomData>();
     private Dictionary<string,float> roomListInfo = new Dictionary<string, float>(); //<RoomName, PlayerCount>
+    private List<GameObject> listOfRoomInfoItems = new();
     
     
     
@@ -144,9 +148,10 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
 
     
 
-    public override void OnRoomListUpdate(List<RoomInfo> roomList)
+    /*public override void OnRoomListUpdate(List<RoomInfo> roomList)
     {
         base.OnRoomListUpdate(roomList);
+        
         Dictionary<string,float> roomListInfoCopy = new Dictionary<string, float>(roomListInfo);
         foreach (var newRoomInfo in roomList)
         {
@@ -170,9 +175,95 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         {
             lobbyRoomsInfo.text += roomInfo.Key + " Players: " + (int)roomInfo.Value + "/" + roomInfo.Value % 1 * 10 + "\n";
         }
+    }*/
+    
+    public override void OnRoomListUpdate(List<RoomInfo> roomList)
+    {
+        base.OnRoomListUpdate(roomList);
+        
+        foreach (var newRoomInfo in roomList)
+        {
+            bool roomIsNew = true;
+            foreach (var oldRoomInfo in roomDataList)
+            {
+                if (oldRoomInfo.roomName == newRoomInfo.Name)
+                {
+                    roomIsNew = false;
+                    oldRoomInfo.currentPlayers = newRoomInfo.PlayerCount;
+                }
+            }
+            if (roomIsNew)
+            {
+                roomDataList.Add(new RoomData(newRoomInfo.Name, newRoomInfo.PlayerCount, newRoomInfo.MaxPlayers, newRoomInfo.CustomProperties["difficulty"] as string));
+            }
+        }
+        
+        foreach (var VARIABLE in listOfRoomInfoItems)
+        {
+            Destroy(VARIABLE);
+        }
+        
+        foreach (var newRoomInfo in roomDataList)
+        {
+            string roomText = newRoomInfo.roomName + " Players: " + newRoomInfo.currentPlayers + "/" + newRoomInfo.maxPlayers + " difficulty: " + newRoomInfo.difficulty;
+
+            bool canJoin = newRoomInfo.currentPlayers < newRoomInfo.maxPlayers;
+            
+            var roomInfoItem = Instantiate(roomInfoItemPrefab,roomListObject.transform.position,Quaternion.identity,roomListObject.transform);
+            roomInfoItem.Init(newRoomInfo.roomName,roomText,canJoin);
+            listOfRoomInfoItems.Add(roomInfoItem.gameObject);
+        }
     }
     
+    /*public override void OnRoomListUpdate(List<RoomInfo> roomList)
+    {
+        base.OnRoomListUpdate(roomList);
+    
+        Dictionary<string, float> roomListInfoCopy = new Dictionary<string, float>(roomListInfo);
+        foreach (var newRoomInfo in roomList)
+        {
+            bool roomIsNew = true;
+            foreach (var oldRoomInfo in roomListInfoCopy)
+            {
+                if (oldRoomInfo.Key == newRoomInfo.Name)
+                {
+                    roomIsNew = false;
+                    roomListInfo[oldRoomInfo.Key] = newRoomInfo.PlayerCount;
+                }
+            }
+            if (roomIsNew)
+            {
+                roomListInfo.Add(newRoomInfo.Name, newRoomInfo.PlayerCount + newRoomInfo.MaxPlayers / 10f);
+            }
+        }
 
+        lobbyRoomsInfo.text = " ";
+
+        
+        foreach (var VARIABLE in listOfRoomInfoItems)
+        {
+            Destroy(VARIABLE);
+        }
+        
+        foreach (var newRoomInfo in roomList)
+        {
+            string difficulty = newRoomInfo.CustomProperties["difficulty"] as string;
+
+            string roomText = newRoomInfo.Name + " Players: " + newRoomInfo.PlayerCount + "/" + newRoomInfo.MaxPlayers;
+            
+            if (!string.IsNullOrEmpty(difficulty))
+            {
+                roomText += " difficulty: " + difficulty;
+            }
+
+            bool canJoin = newRoomInfo.PlayerCount < newRoomInfo.MaxPlayers;
+            
+            var roomInfoItem = Instantiate(roomInfoItemPrefab,roomListObject.transform.position,Quaternion.identity,roomListObject.transform);
+            roomInfoItem.Init(newRoomInfo.Name,roomText,canJoin);
+            listOfRoomInfoItems.Add(roomInfoItem.gameObject);
+        }
+    }*/
+    
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         base.OnPlayerEnteredRoom(newPlayer);
@@ -193,15 +284,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
             PhotonNetwork.LoadLevel(gameSceneName);
         }
     }
-
-    /*private void ToggleJoinRoomButtonsState(bool active)
-    {
-        
-        foreach (Button joinRoomButton in roomButtons)
-        {
-            joinRoomButton.interactable = active;
-        }
-    }*/
+    
 
     private void RefreshCurrentRoomInfo()
     {
@@ -217,5 +300,21 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         {
             StartGamePanel.SetActive(false);
         }
+    }
+}
+
+public class RoomData
+{
+    public string roomName;
+    public int currentPlayers;
+    public int maxPlayers;
+    public string difficulty;
+    
+    public RoomData(string roomName, int currentPlayers, int maxPlayers, string difficulty)
+    {
+        this.roomName = roomName;
+        this.currentPlayers = currentPlayers;
+        this.maxPlayers = maxPlayers;
+        this.difficulty = difficulty;
     }
 }

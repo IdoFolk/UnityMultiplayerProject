@@ -1,8 +1,13 @@
 using System;
 using System.Collections;
 using Photon.Pun;
+using Photon.Realtime;
 using Unity.Mathematics;
 using UnityEngine;
+using Photon.Realtime;
+using ExitGames.Client.Photon;
+using Photon.Pun;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback/*, IPunObservable*/
 {    
@@ -58,6 +63,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             playerColor = GameNetworkManager.CharacterColor;
             spriteRenderer.color = playerColor;
         }
+        Hashtable roomProperties = PhotonNetwork.CurrentRoom.CustomProperties;
+        speed = GetSpeedBasedOnDifficulty(roomProperties["difficulty"].ToString());
     }
 
     public void DisablePlayer()
@@ -304,4 +311,19 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             //SyncRemotePlayerPosition();
         }
     }*/
+
+    private int GetSpeedBasedOnDifficulty(string difficulty)
+    {
+        switch (difficulty)
+        {
+            case "1":
+                return 70;
+            case "2":
+                return 100;
+            case "3":
+                return 130;
+            default:
+                return 60;
+        }
+    }
 }

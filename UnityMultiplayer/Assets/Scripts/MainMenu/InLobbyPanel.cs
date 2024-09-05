@@ -1,4 +1,5 @@
 using System;
+using ExitGames.Client.Photon;
 using Photon.Pun;
 using Photon.Pun.UtilityScripts;
 using TMPro;
@@ -12,6 +13,8 @@ namespace MainMenu
         [SerializeField] private GameObject inLobbyPanelHolder;
         
         [SerializeField] private Button joinRoomByNameButton;
+        
+        [SerializeField] private Slider roomDifficultySlider;
         
         [SerializeField] private TMP_InputField roomNameForJoiningRoomInputField;
         
@@ -29,7 +32,8 @@ namespace MainMenu
         
         public void TryToJoinRandomRoom()
         {
-            PhotonNetwork.JoinRandomRoom();
+            Debug.Log("join room by difficulty value: " + roomDifficultySlider.value);
+            PhotonNetwork.JoinRandomRoom(new Hashtable { { "difficulty", roomDifficultySlider.value.ToString() } }, 0);
         }
 
         public void SubmitRoomNameForJoiningRoom()
