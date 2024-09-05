@@ -17,6 +17,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     [SerializeField] private GameObject EnterNicknamePanel;
     [SerializeField] private GameObject StartGamePanel;
     [SerializeField] private GameObject lobbyInfoPanel;
+    [SerializeField] private GameObject inLobbyPanelHolder;
     
     [Header("buttons")] 
     [SerializeField] private Button startGameButton;
@@ -37,8 +38,8 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     private string defaultRoomName = "DefaultRoom";
     private string gameSceneName = "GameScene";
     
-    private List<RoomData> roomDataList = new List<RoomData>();
-    private Dictionary<string,float> roomListInfo = new Dictionary<string, float>(); //<RoomName, PlayerCount>
+    private List<RoomData> CurrentShownRoomData = new List<RoomData>();
+    //private Dictionary<string,float> roomListInfo = new Dictionary<string, float>(); //<RoomName, PlayerCount>
     private List<GameObject> listOfRoomInfoItems = new();
     
     
@@ -177,33 +178,48 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         }
     }*/
     
-    public override void OnRoomListUpdate(List<RoomInfo> roomList)
+    public override void OnRoomListUpdate(List<RoomInfo> changedRoomList)
     {
-        base.OnRoomListUpdate(roomList);
+        base.OnRoomListUpdate(changedRoomList);
         
-        foreach (var newRoomInfo in roomList)
+        List<RoomData> newListOfRoomData = new List<RoomData>(CurrentShownRoomData);
+        foreach (var changedRoomInfo in changedRoomList)
         {
             bool roomIsNew = true;
-            foreach (var oldRoomInfo in roomDataList)
+
+            if (changedRoomInfo.RemovedFromList)
             {
-                if (oldRoomInfo.roomName == newRoomInfo.Name)
+                foreach (var VARIABLE in newListOfRoomData)
+                {
+                    if(changedRoomInfo.Name == VARIABLE.roomName)
+                        newListOfRoomData.Remove(VARIABLE);
+                }
+                continue;
+            }
+            
+            foreach (var oldRoomInfo in newListOfRoomData)
+            {
+                if (oldRoomInfo.roomName == changedRoomInfo.Name)
                 {
                     roomIsNew = false;
-                    oldRoomInfo.currentPlayers = newRoomInfo.PlayerCount;
+                    oldRoomInfo.currentPlayers = changedRoomInfo.PlayerCount;
                 }
             }
-            if (roomIsNew)
+            if (roomIsNew )
             {
-                roomDataList.Add(new RoomData(newRoomInfo.Name, newRoomInfo.PlayerCount, newRoomInfo.MaxPlayers, newRoomInfo.CustomProperties["difficulty"] as string));
+                newListOfRoomData.Add(new RoomData(changedRoomInfo.Name, changedRoomInfo.PlayerCount, changedRoomInfo.MaxPlayers, changedRoomInfo.CustomProperties["difficulty"] as string));
             }
         }
+        
+        CurrentShownRoomData.Clear();
+        CurrentShownRoomData = newListOfRoomData;
         
         foreach (var VARIABLE in listOfRoomInfoItems)
         {
             Destroy(VARIABLE);
         }
         
-        foreach (var newRoomInfo in roomDataList)
+        foreach (var newRoomInfo in CurrentShownRoomData)
         {
             string roomText = newRoomInfo.roomName + " Players: " + newRoomInfo.currentPlayers + "/" + newRoomInfo.maxPlayers + " difficulty: " + newRoomInfo.difficulty;
 
@@ -275,7 +291,6 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         base.OnPlayerLeftRoom(otherPlayer);
         RefreshCurrentRoomInfo();
     }
-
     
     public void StartGame()
     {
@@ -285,7 +300,6 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         }
     }
     
-
     private void RefreshCurrentRoomInfo()
     {
         if (PhotonNetwork.InRoom)
@@ -300,6 +314,12 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         {
             StartGamePanel.SetActive(false);
         }
+    }
+
+    public void LeaveRoom()
+    {
+        PhotonNetwork.LeaveRoom();
+        inLobbyPanelHolder.SetActive(true);
     }
 }
 

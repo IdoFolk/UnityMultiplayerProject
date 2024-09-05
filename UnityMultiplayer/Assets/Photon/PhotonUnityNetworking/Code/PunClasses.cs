@@ -246,7 +246,7 @@ namespace Photon.Pun
         /// Each item is a RoomInfo which might include custom properties (provided you defined those as lobby-listed when creating a room).
         /// Not all types of lobbies provide a listing of rooms to the client. Some are silent and specialized for server-side matchmaking.
         /// </remarks>
-        public virtual void OnRoomListUpdate(List<RoomInfo> roomList)
+        public virtual void OnRoomListUpdate(List<RoomInfo> changedRoomList)
         {
         }
 
