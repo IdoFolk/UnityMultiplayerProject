@@ -85,7 +85,7 @@ namespace Photon.Realtime.Demo
             regionHandler.PingMinimumOfRegions(this.OnRegionPingCompleted, null);
         }
 
-        public void OnRoomListUpdate(List<RoomInfo> roomList)
+        public void OnRoomListUpdate(List<RoomInfo> changedRoomList)
         {
         }
 

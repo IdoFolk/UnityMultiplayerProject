@@ -3871,7 +3871,7 @@ namespace Photon.Realtime
         ///
         /// The list of rooms (or rooms' updates) is also limited in number, see Lobby Limits.
         /// </remarks>
-        void OnRoomListUpdate(List<RoomInfo> roomList);
+        void OnRoomListUpdate(List<RoomInfo> changedRoomList);
 
         /// <summary>
         /// Called when the Master Server sent an update for the Lobby Statistics.
@@ -4485,13 +4485,13 @@ namespace Photon.Realtime
             }
         }
 
-        public void OnRoomListUpdate(List<RoomInfo> roomList)
+        public void OnRoomListUpdate(List<RoomInfo> changedRoomList)
         {
             this.client.UpdateCallbackTargets();
 
             foreach (ILobbyCallbacks target in this)
             {
-                target.OnRoomListUpdate(roomList);
+                target.OnRoomListUpdate(changedRoomList);
             }
         }
 

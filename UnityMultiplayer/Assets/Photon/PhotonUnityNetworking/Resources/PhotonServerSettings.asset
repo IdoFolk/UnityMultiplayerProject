@@ -39,6 +39,26 @@ MonoBehaviour:
   - DestroySpaceship
   - Fire
   - RespawnSpaceship
+  - SendCharacterPicked
+  - CharacterWasPicked
+  - SpawnCharacter
+  - SendChatMessage
+  - RecieveChatMessage
+  - OnCollisionEnter
+  - Explode
+  - Die
+  - GameOver
+  - RespawnCharacter
+  - GetNextPowerUpSpawnPosition
+  - StartGameRPC
+  - GameStarted
+  - DestroyPickup
+  - DestroyPowerUp
+  - OnPlayerDeath
+  - PrepareForNextRound
+  - RoundStarted
+  - CharacterSlotTaken
+  - PreparePlayerForNewRound
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
