@@ -1,12 +1,14 @@
 using System;
 using System.Collections;
 using System.Linq;
+using Game;
 using Photon.Pun;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 using Random = UnityEngine.Random;
 
 
@@ -89,6 +91,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         photonView.RPC(ClientPickedCharacterRPC, RpcTarget.MasterClient, characterPickedID, characterColor.ToRGBHex());
         CharacterPickedID = characterPickedID;
         CharacterColor = characterColor;
+        PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable() {{"Color", characterColor.ToRGBHex()}});
         nicknameText.color = characterColor;
         nicknameText.text = $"Playing as: {PhotonNetwork.NickName}";
         characterPickPanel.SetActive(false);
@@ -184,14 +187,19 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    public void OnPlayerDeath(string playerNickname)
+    public void OnPlayerDeath(int actorNumber)
     {
         playersAlive--;
-        Debug.Log($"{playerNickname} Died.");
+        Debug.Log($"player {actorNumber} Died.");
         
-        if (PhotonNetwork.IsMasterClient && playersAlive <= 1)
+        if (PhotonNetwork.IsMasterClient)
         {
-            photonView.RPC(GameOverRPC, RpcTarget.All);
+            ScoreHandler.Instance.SendPlayerDeathRPC(actorNumber);
+            if (playersAlive <= 1)
+            {
+                photonView.RPC(GameOverRPC, RpcTarget.All);
+                //ScoreHandler.Instance.SendGameOverRPC();
+            }
         }
     }
     
@@ -230,7 +238,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
 
     public void SendPlayerDeathRPC()
     {
-        photonView.RPC(PlayerDeathRPC, RpcTarget.All, PhotonNetwork.NickName);
+        photonView.RPC(PlayerDeathRPC, RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber);
     }
     #endregion
     
@@ -299,6 +307,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsMasterClient)
         {
+            ScoreHandler.Instance.SendRoundBeginsRPC();
             if (!gameEnded) //"Start Round"
             {
                 photonView.RPC(RoundStartedRPC, RpcTarget.All);

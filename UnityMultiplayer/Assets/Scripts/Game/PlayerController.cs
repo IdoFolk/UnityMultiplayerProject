@@ -6,6 +6,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Photon.Realtime;
 using ExitGames.Client.Photon;
+using Game;
 using Photon.Pun;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 

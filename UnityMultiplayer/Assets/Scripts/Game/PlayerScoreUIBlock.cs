@@ -11,5 +11,6 @@ public class PlayerScoreUIBlock : MonoBehaviour
         nameText.color = color;
         nameText.text = name;
         scoreText.text = score.ToString();
+        gameObject.SetActive(true);
     }
 }
