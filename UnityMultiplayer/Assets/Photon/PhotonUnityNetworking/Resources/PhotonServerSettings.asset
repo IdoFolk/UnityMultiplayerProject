@@ -59,6 +59,9 @@ MonoBehaviour:
   - RoundStarted
   - CharacterSlotTaken
   - PreparePlayerForNewRound
+  - PlayerDeath
+  - ShowScores
+  - RoundBegin
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
