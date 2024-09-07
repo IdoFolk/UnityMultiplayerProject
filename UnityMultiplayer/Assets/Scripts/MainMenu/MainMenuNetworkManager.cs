@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Photon.Realtime;
 using System.Collections.Generic;
+using ExitGames.Client.Photon;
 using UnityEditor;
 using UnityEngine.Serialization;
 
@@ -50,6 +51,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         StartGamePanel.SetActive(false);
         PhotonNetwork.AutomaticallySyncScene = true;
         PhotonNetwork.ConnectUsingSettings();
+        
     }
     
     public void SubmitLobbyName(string lobbyName) => _lobbyName = lobbyName;
@@ -85,7 +87,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     {
         base.OnJoinedRoom();
         networkStatusText.text = "Joined room";
-        
+        PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable(){{"ID", SystemInfo.deviceUniqueIdentifier}});
     }
 
     ////////////////////////////////////////////////

@@ -28,8 +28,8 @@ namespace Game
         
         [SerializeField] private PlayerScoreUIBlock[] playerScoreUIBlocks;
         
-        private Dictionary<int,int> playerScores = new Dictionary<int, int>();
-        private Queue<int> currentRoundPlacments = new Queue<int>();
+        private Dictionary<string,int> playerScores = new Dictionary<string, int>();
+        private Queue<string> currentRoundPlacments = new Queue<string>();
 
         private const string RoundBeginsRPC = nameof(RoundBegin);
         private const string ShowScoresRPC = nameof(ShowScores);
@@ -42,7 +42,7 @@ namespace Game
             photonView.RPC(ShowScoresRPC, RpcTarget.All);
         }
 
-        public void SendPlayerDeathRPC(int userID)
+        public void SendPlayerDeathRPC(string userID)
         {
             photonView.RPC(PlayerDeathRPC, RpcTarget.MasterClient, userID);
         }
@@ -82,7 +82,7 @@ namespace Game
             SendShowScoresRPC();
         }
         [PunRPC]
-        public void PlayerDeath(int userID)
+        public void PlayerDeath(string userID)
         {
             if(!currentRoundPlacments.Contains(userID)) currentRoundPlacments.Enqueue(userID);
             if(currentRoundPlacments.Count == PhotonNetwork.CurrentRoom.PlayerCount - 1) SendGameOverRPC();
@@ -92,7 +92,7 @@ namespace Game
         {
             foreach (var player in PhotonNetwork.CurrentRoom.Players)
             {
-                if(!currentRoundPlacments.Contains(player.Value.ActorNumber)) currentRoundPlacments.Enqueue(player.Value.ActorNumber);
+                if(!currentRoundPlacments.Contains(player.Value.CustomProperties["ID"])) currentRoundPlacments.Enqueue(player.Value.CustomProperties["ID"] as string);
             }
 
             var playerCount = currentRoundPlacments.Count;
@@ -104,7 +104,8 @@ namespace Game
             }
             foreach (var player in PhotonNetwork.CurrentRoom.Players)
             {
-                player.Value.SetCustomProperties(new Hashtable(){{"Score", playerScores[player.Value.ActorNumber]}});
+                if(player.Value.CustomProperties["ID"] is not string userID) return;
+                player.Value.SetCustomProperties(new Hashtable(){{"Score", playerScores[userID]}});
                 //Debug.Log($"player {player.Value.ActorNumber} score: {playerScores[player.Value.ActorNumber]}");
             }
             Invoke(nameof(SendShowScoresRPC),0.5f);
