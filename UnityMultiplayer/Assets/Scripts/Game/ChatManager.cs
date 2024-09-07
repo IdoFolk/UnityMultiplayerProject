@@ -22,6 +22,7 @@ public class ChatManager : MonoBehaviourPunCallbacks, IPointerEnterHandler, IPoi
     public static float ChatMessageAlphaValue;
     private bool _chatIsOpen = false;
     private bool _mouseOnUI = false;
+    private const string RecieveChatMessageRPC = nameof(RecieveChatMessage);
 
     private void Start()
     {
@@ -31,9 +32,12 @@ public class ChatManager : MonoBehaviourPunCallbacks, IPointerEnterHandler, IPoi
     }
     public void SendChatMessage()
     {
+        var name = PhotonNetwork.NickName;
         var message = _inputField.text;
         var color = GameNetworkManager.CharacterColor.ToRGBHex();
-        photonView.RPC(nameof(RecieveChatMessage), RpcTarget.All, message, color);
+        var chatMessageData = new ChatMessageData(name, message, color);
+        var messageJson = JsonUtility.ToJson(chatMessageData);
+        photonView.RPC(RecieveChatMessageRPC, RpcTarget.All, messageJson);
         _inputField.text = "";
     }
 
@@ -83,9 +87,10 @@ public class ChatManager : MonoBehaviourPunCallbacks, IPointerEnterHandler, IPoi
 
     #region RPC
     [PunRPC]
-    public void RecieveChatMessage(string message,string color, PhotonMessageInfo messageInfo)
+    public void RecieveChatMessage(string messageJson)
     {
-        var chatMessage = new ChatMessage(messageInfo.Sender.NickName, message, color.FromHexToColor());
+        var chatMessageData = JsonUtility.FromJson<ChatMessageData>(messageJson);
+        var chatMessage = new ChatMessage(chatMessageData);
         ChatLog.Add(chatMessage);
         RefreshChat();
     }
@@ -144,9 +149,9 @@ public readonly struct ChatMessage
     {
         get
         {
-            var color = Color;
+            var color = _messageData.Color.FromHexToColor();
             color.a = ChatManager.ChatNameAlphaValue;
-            var str = name + ": ";
+            var str = _messageData.Name + ": ";
             return str.SetColor(color);
         }
     }
@@ -155,20 +160,30 @@ public readonly struct ChatMessage
     {
         get
         {
-            var color = Color;
+            var color = _messageData.Color.FromHexToColor();
             color.a = ChatManager.ChatMessageAlphaValue;
-            return message.SetColor(Color.white);
+            return _messageData.Message.SetColor(Color.white);
         }
     }
 
-    private readonly string name;
-    private readonly string message;
-    public readonly Color Color;
+    private readonly ChatMessageData _messageData;
 
-    public ChatMessage(string name, string message, Color color)
+    public ChatMessage(ChatMessageData data)
     {
-        this.name = name;
-        this.message = message;
+        _messageData = data;
+    }
+}
+
+public struct ChatMessageData
+{
+    public string Name;
+    public string Message;
+    public string Color;
+
+    public ChatMessageData(string name, string message, string color)
+    {
+        Name = name;
+        Message = message;
         Color = color;
     }
 }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 using Game;
 using Photon.Pun;
+using Photon.Realtime;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
@@ -49,6 +50,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     private const string PlayerPrefabName = "Prefabs\\PlayerPrefab";
     private const string PowerUpPrefabName = "Prefabs\\PowerUpPrefab";
     
+    private const string PlayerDisconnectedRPC = nameof(PlayerDisconnected);
     private const string ClientPickedCharacterRPC = nameof(SendCharacterPicked);
     private const string CharacterSlotTakenRPC = nameof(CharacterSlotTaken);
     private const string PreparePlayerForNewRoundRPC = nameof(PreparePlayerForNewRound);
@@ -95,7 +97,6 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         nicknameText.color = characterColor;
         nicknameText.text = $"Playing as: {PhotonNetwork.NickName}";
         characterPickPanel.SetActive(false);
-        
         PreparePlayerForNewRound();
     }
     
@@ -187,14 +188,14 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    public void OnPlayerDeath(int actorNumber)
+    public void OnPlayerDeath(string userID)
     {
         playersAlive--;
-        Debug.Log($"player {actorNumber} Died.");
+        //Debug.Log($"player {userID} Died.");
         
         if (PhotonNetwork.IsMasterClient)
         {
-            ScoreHandler.Instance.SendPlayerDeathRPC(actorNumber);
+            ScoreHandler.Instance.SendPlayerDeathRPC(userID);
             if (playersAlive <= 1)
             {
                 photonView.RPC(GameOverRPC, RpcTarget.All);
@@ -227,6 +228,12 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     {
         PhotonNetwork.Destroy(PhotonView.Find(viewID).gameObject);
     }
+    
+    [PunRPC]
+    public void PlayerDisconnected()
+    {
+        
+    }
     #endregion
 
     #region RPC Sendings
@@ -238,7 +245,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
 
     public void SendPlayerDeathRPC()
     {
-        photonView.RPC(PlayerDeathRPC, RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber);
+        photonView.RPC(PlayerDeathRPC, RpcTarget.All, SystemInfo.deviceUniqueIdentifier);
     }
     #endregion
     
@@ -368,5 +375,14 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     public void ToggleBorder(bool on)
     {
         ArenaBorder.gameObject.SetActive(on);
+    }
+
+    public override void OnDisconnected(DisconnectCause cause)
+    {
+        base.OnDisconnected(cause);
+        if (cause == DisconnectCause.ApplicationQuit) return;
+        photonView.RPC(PlayerDisconnectedRPC,RpcTarget.MasterClient);
+        
+        
     }
 }
