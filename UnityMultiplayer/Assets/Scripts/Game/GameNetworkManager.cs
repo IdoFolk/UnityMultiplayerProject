@@ -251,7 +251,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
 
     public void SendPlayerDeathRPC()
     {
-        photonView.RPC(PlayerDeathRPC, RpcTarget.All, SystemInfo.deviceUniqueIdentifier);
+        photonView.RPC(PlayerDeathRPC, RpcTarget.All, PhotonNetwork.LocalPlayer.CustomProperties["ID"] as string);
     }
     #endregion
     
