@@ -194,7 +194,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    public void OnPlayerDeath(string userID)
+    public void OnPlayerDeath(int userID)
     {
         playersAlive--;
         //Debug.Log($"player {userID} Died.");
@@ -251,7 +251,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
 
     public void SendPlayerDeathRPC()
     {
-        photonView.RPC(PlayerDeathRPC, RpcTarget.All, PhotonNetwork.LocalPlayer.CustomProperties["ID"] as string);
+        photonView.RPC(PlayerDeathRPC, RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber);
     }
     #endregion
     

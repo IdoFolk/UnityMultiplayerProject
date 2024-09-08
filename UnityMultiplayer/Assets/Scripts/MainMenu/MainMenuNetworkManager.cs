@@ -87,15 +87,15 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     {
         base.OnJoinedRoom();
         networkStatusText.text = "Joined room";
-        foreach (var player in PhotonNetwork.CurrentRoom.Players)
-        {
-            if (player.Value.CustomProperties["ID"] as string == SystemInfo.deviceUniqueIdentifier)
-            {
-                PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable(){{"ID", SystemInfo.deviceUniqueIdentifier + PhotonNetwork.LocalPlayer.ActorNumber}});
-                return;
-            }
-        }
-        PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable(){{"ID", SystemInfo.deviceUniqueIdentifier}});
+        // foreach (var player in PhotonNetwork.CurrentRoom.Players)
+        // {
+        //     if (player.Value.CustomProperties["ID"] as string == SystemInfo.deviceUniqueIdentifier)
+        //     {
+        //         PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable(){{"ID", SystemInfo.deviceUniqueIdentifier + PhotonNetwork.LocalPlayer.ActorNumber}});
+        //         return;
+        //     }
+        // }
+        // PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable(){{"ID", SystemInfo.deviceUniqueIdentifier}});
     }
 
     ////////////////////////////////////////////////
