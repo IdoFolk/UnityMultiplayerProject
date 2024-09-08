@@ -21,6 +21,8 @@ public class FirstMainMenuPanel : MonoBehaviourPunCallbacks
     private bool _hasNickname;
     private bool _hasLobbyName;
 
+    private bool inLobby;
+
     private void Start()
     {
         panelHolder.SetActive(false);
@@ -78,7 +80,17 @@ public class FirstMainMenuPanel : MonoBehaviourPunCallbacks
     public override void OnConnectedToMaster()
     {
         base.OnConnectedToMaster();
-        panelHolder.SetActive(true);
+        if (!inLobby)
+        {
+            panelHolder.SetActive(true);
+            inLobby = true;
+        }
+        else
+        {
+            PhotonNetwork.JoinLobby(new TypedLobby(lobbyNameInputText.text, LobbyType.Default));
+            Debug.Log(PhotonNetwork.CurrentLobby.Name);
+        }
+        
     }
 
     public override void OnJoinedLobby()

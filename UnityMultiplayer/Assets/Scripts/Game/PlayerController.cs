@@ -324,7 +324,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunInstantiateMagicC
             case "3":
                 return 130;
             default:
-                return 60;
+                return 70;
         }
     }
 }
