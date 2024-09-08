@@ -27,6 +27,7 @@ namespace Game
         #endregion
         
         [SerializeField] private PlayerScoreUIBlock[] playerScoreUIBlocks;
+        [SerializeField] private int scoreToWin;
         
         private Dictionary<string,int> playerScores = new Dictionary<string, int>();
         private Queue<string> currentRoundPlacments = new Queue<string>();
@@ -35,8 +36,12 @@ namespace Game
         private const string ShowScoresRPC = nameof(ShowScores);
         private const string PlayerDeathRPC = nameof(PlayerDeath);
         private const string GameOverRPC = nameof(GameOver);
-        
-        
+
+        public void SetScoreGoalForTheMatch(int score)
+        {
+            if(!PhotonNetwork.IsMasterClient) return;
+            scoreToWin = score;
+        }
         public void SendShowScoresRPC()
         {
             photonView.RPC(ShowScoresRPC, RpcTarget.All);
@@ -54,7 +59,10 @@ namespace Game
         {
             photonView.RPC(GameOverRPC, RpcTarget.MasterClient);
         }
+        
 
+        #region RPC
+        
         [PunRPC]
         public void ShowScores()
         {
@@ -75,6 +83,7 @@ namespace Game
             }
 
         }
+
         [PunRPC]
         public void RoundBegin()
         {
@@ -90,6 +99,7 @@ namespace Game
         [PunRPC]
         public void GameOver()
         {
+            bool gameEnded = false;
             foreach (var player in PhotonNetwork.CurrentRoom.Players)
             {
                 if(!currentRoundPlacments.Contains(player.Value.CustomProperties["ID"])) currentRoundPlacments.Enqueue(player.Value.CustomProperties["ID"] as string);
@@ -101,6 +111,7 @@ namespace Game
             {
                 var userID = currentRoundPlacments.Dequeue();
                 if(!playerScores.TryAdd(userID, i)) playerScores[userID] += i;
+                if(playerScores[userID] >= scoreToWin) gameEnded = true;
             }
             foreach (var player in PhotonNetwork.CurrentRoom.Players)
             {
@@ -109,6 +120,9 @@ namespace Game
                 //Debug.Log($"player {player.Value.ActorNumber} score: {playerScores[player.Value.ActorNumber]}");
             }
             Invoke(nameof(SendShowScoresRPC),0.5f);
+            if(gameEnded) Invoke(nameof(GameNetworkManager.Instance.OnMatchEnded),1);
         }
+
+        #endregion
     }
 }
