@@ -87,6 +87,16 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
     {
         base.OnJoinedRoom();
         networkStatusText.text = "Joined room";
+        RefreshCurrentRoomInfo();
+        
+        CurrentShownRoomData.Clear();
+        
+        foreach (var VARIABLE in listOfRoomInfoItems)
+        {
+            Destroy(VARIABLE);
+        }
+        listOfRoomInfoItems.Clear();
+        
         // foreach (var player in PhotonNetwork.CurrentRoom.Players)
         // {
         //     if (player.Value.CustomProperties["ID"] as string == SystemInfo.deviceUniqueIdentifier)
@@ -98,39 +108,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         // PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable(){{"ID", SystemInfo.deviceUniqueIdentifier}});
     }
 
-    ////////////////////////////////////////////////
-    
-    /*private void SetMaxPlayerNumberText(int obj)
-    {
-        maxPlayerNumberInRoom = obj;
-    }*/
-    
-    /*public void CreateRoom()
-    {
-        RoomOptions roomOptions = new RoomOptions()
-        {
-            MaxPlayers = maxPlayerNumberInRoom,
-        };
-        if(roomName.Length >= 1)
-            PhotonNetwork.CreateRoom(roomName,roomOptions);
-        else
-            PhotonNetwork.CreateRoom(defaultRoomName,roomOptions);
-    }*/
-    
 
-    /*public override void OnJoinedLobby()
-    {
-        base.OnJoinedLobby();
-        Debug.Log($"We successfully joined the lobby {PhotonNetwork.CurrentLobby}!");
-        joinLobbyButton.interactable = false;
-        lobbyInfoPanel.SetActive(true);
-    }*/
-
-    /*public void JoinOrCreateRoom()
-    {
-        PhotonNetwork.JoinOrCreateRoom(roomNameInputField.text, null, null);
-        
-    }*/
 
     public override void OnLeftRoom()
     {
@@ -139,54 +117,6 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         
     }
     
-    /*public override void OnJoinedRoom()
-    {
-        base.OnJoinedRoom();
-        RefreshCurrentRoomInfo();
-        Debug.Log("We successfully joined the room " + PhotonNetwork.CurrentRoom);
-        lobbyInfoPanel.SetActive(false);
-        joinRoomByNameButton.interactable = false;
-        
-
-    }*/
-
-    /*public override void OnJoinRoomFailed(short returnCode, string message)
-    {
-        base.OnJoinRoomFailed(returnCode, message);
-        Debug.LogError($"We couldn't join the room because {message} return code is {returnCode}");
-        ToggleJoinRoomButtonsState(true);
-    }*/
-
-    
-
-    /*public override void OnRoomListUpdate(List<RoomInfo> roomList)
-    {
-        base.OnRoomListUpdate(roomList);
-        
-        Dictionary<string,float> roomListInfoCopy = new Dictionary<string, float>(roomListInfo);
-        foreach (var newRoomInfo in roomList)
-        {
-            bool roomIsNew = true;
-            foreach (var oldRoomInfo in roomListInfoCopy)
-            {
-                if (oldRoomInfo.Key == newRoomInfo.Name)
-                {
-                    roomIsNew = false;
-                    roomListInfo[oldRoomInfo.Key] = newRoomInfo.PlayerCount;
-                }
-            }
-            if (roomIsNew)
-            {
-                roomListInfo.Add(newRoomInfo.Name, newRoomInfo.PlayerCount + newRoomInfo.MaxPlayers/10f);
-            }
-        }
-    
-        lobbyRoomsInfo.text = " ";
-        foreach (KeyValuePair<string, float> roomInfo in roomListInfo)
-        {
-            lobbyRoomsInfo.text += roomInfo.Key + " Players: " + (int)roomInfo.Value + "/" + roomInfo.Value % 1 * 10 + "\n";
-        }
-    }*/
     
     public override void OnRoomListUpdate(List<RoomInfo> changedRoomList)
     {
@@ -199,7 +129,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
 
             if (changedRoomInfo.RemovedFromList)
             {
-                foreach (var VARIABLE in newListOfRoomData)
+                foreach (var VARIABLE in CurrentShownRoomData)
                 {
                     if(changedRoomInfo.Name == VARIABLE.roomName)
                         newListOfRoomData.Remove(VARIABLE);
@@ -228,6 +158,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         {
             Destroy(VARIABLE);
         }
+        listOfRoomInfoItems.Clear();
         
         foreach (var newRoomInfo in CurrentShownRoomData)
         {
@@ -241,54 +172,7 @@ public class MainMenuNetworkManager : MonoBehaviourPunCallbacks
         }
     }
     
-    /*public override void OnRoomListUpdate(List<RoomInfo> roomList)
-    {
-        base.OnRoomListUpdate(roomList);
-    
-        Dictionary<string, float> roomListInfoCopy = new Dictionary<string, float>(roomListInfo);
-        foreach (var newRoomInfo in roomList)
-        {
-            bool roomIsNew = true;
-            foreach (var oldRoomInfo in roomListInfoCopy)
-            {
-                if (oldRoomInfo.Key == newRoomInfo.Name)
-                {
-                    roomIsNew = false;
-                    roomListInfo[oldRoomInfo.Key] = newRoomInfo.PlayerCount;
-                }
-            }
-            if (roomIsNew)
-            {
-                roomListInfo.Add(newRoomInfo.Name, newRoomInfo.PlayerCount + newRoomInfo.MaxPlayers / 10f);
-            }
-        }
-
-        lobbyRoomsInfo.text = " ";
-
-        
-        foreach (var VARIABLE in listOfRoomInfoItems)
-        {
-            Destroy(VARIABLE);
-        }
-        
-        foreach (var newRoomInfo in roomList)
-        {
-            string difficulty = newRoomInfo.CustomProperties["difficulty"] as string;
-
-            string roomText = newRoomInfo.Name + " Players: " + newRoomInfo.PlayerCount + "/" + newRoomInfo.MaxPlayers;
-            
-            if (!string.IsNullOrEmpty(difficulty))
-            {
-                roomText += " difficulty: " + difficulty;
-            }
-
-            bool canJoin = newRoomInfo.PlayerCount < newRoomInfo.MaxPlayers;
-            
-            var roomInfoItem = Instantiate(roomInfoItemPrefab,roomListObject.transform.position,Quaternion.identity,roomListObject.transform);
-            roomInfoItem.Init(newRoomInfo.Name,roomText,canJoin);
-            listOfRoomInfoItems.Add(roomInfoItem.gameObject);
-        }
-    }*/
+   
     
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {

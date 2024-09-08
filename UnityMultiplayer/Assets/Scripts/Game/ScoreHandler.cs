@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ExitGames.Client.Photon;
 using Photon.Pun;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Game
 {
@@ -28,6 +31,8 @@ namespace Game
         
         [SerializeField] private PlayerScoreUIBlock[] playerScoreUIBlocks;
         [SerializeField] private int scoreToWin;
+        [SerializeField] private TMP_Text aboveTheStartButtonText;
+        [SerializeField] private Button startRoundButton;
         
         private Dictionary<int,int> playerScores = new Dictionary<int, int>();
         private Queue<int> currentRoundPlacments = new Queue<int>();
@@ -36,6 +41,8 @@ namespace Game
         private const string ShowScoresRPC = nameof(ShowScores);
         private const string PlayerDeathRPC = nameof(PlayerDeath);
         private const string GameOverRPC = nameof(GameOver);
+        
+        public static event Action MatchEnded;
 
         public void SetScoreGoalForTheMatch(int score)
         {
@@ -100,6 +107,7 @@ namespace Game
         public void GameOver()
         {
             bool gameEnded = false;
+            int winnerID = 0;
             foreach (var player in PhotonNetwork.CurrentRoom.Players)
             {
                 if(!currentRoundPlacments.Contains(player.Value.ActorNumber)) currentRoundPlacments.Enqueue(player.Value.ActorNumber);
@@ -111,7 +119,12 @@ namespace Game
             {
                 var userID = currentRoundPlacments.Dequeue();
                 if(!playerScores.TryAdd(userID, i)) playerScores[userID] += i;
-                if(playerScores[userID] >= scoreToWin) gameEnded = true;
+                if (playerScores[userID] >= scoreToWin)
+                {
+                    winnerID = userID;
+                    gameEnded = true;
+                }
+                    
             }
             foreach (var player in PhotonNetwork.CurrentRoom.Players)
             {
@@ -119,9 +132,37 @@ namespace Game
                 //Debug.Log($"player {player.Value.ActorNumber} score: {playerScores[player.Value.ActorNumber]}");
             }
             Invoke(nameof(SendShowScoresRPC),0.5f);
-            if(gameEnded) Invoke(nameof(GameNetworkManager.Instance.OnMatchEnded),1);
+
+            if (gameEnded)
+            {
+                photonView.RPC(nameof(EndGame), RpcTarget.All, winnerID);
+            }
+            
         }
 
+        [PunRPC]
+        private void EndGame(int userID)
+        {
+            Debug.Log("Game Over");
+            startRoundButton.gameObject.SetActive(false);
+            if (PhotonNetwork.LocalPlayer.ActorNumber == userID)
+            {
+                aboveTheStartButtonText.text = "You Win!";
+                Debug.Log("you win");
+            }
+            else
+            {
+                aboveTheStartButtonText.text = "You Lose!";
+                Debug.Log("you lose");
+            }
+            
+            MatchEnded?.Invoke();
+            
+        }
         #endregion
+
+      
     }
+    
+    
 }

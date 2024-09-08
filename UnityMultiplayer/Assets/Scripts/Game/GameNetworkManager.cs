@@ -29,9 +29,16 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         {
             Instance = this;
         }
+
+        ScoreHandler.MatchEnded += OnMatchEnded;
     }
 
     #endregion
+
+    private void OnDestroy()
+    {
+        ScoreHandler.MatchEnded -= OnMatchEnded;
+    }
 
     [SerializeField] private GameObject characterPickPanel;
     [SerializeField] private GameObject chatPanel;
@@ -59,6 +66,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     public const string DestroyPowerupRPC = nameof(DestroyPowerUp);
     public const string GameOverRPC = nameof(GameOver);
     public const string PlayerDeathRPC = nameof(OnPlayerDeath);
+    public const string MatchEndRPC = nameof(MatchEndedRPC);
 
 
     private IEnumerator SpawnPowerupsCoroutine;
@@ -66,7 +74,9 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     private int pickedPlayerCounter;
     private int playersAlive;
     private bool gameEnded;
+    private bool GameFullyEnded;
 
+    
 
     private void Start()
     {
@@ -115,10 +125,13 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         PhotonNetwork.SetMasterClient(nextPlayer);
     }
 
-    public void OnMatchEnded()
+    private void OnMatchEnded()
     {
-        if(!PhotonNetwork.IsMasterClient) return;
-        //TODO: implement end game logic
+        if (PhotonNetwork.IsMasterClient)
+        {
+            photonView.RPC(MatchEndRPC, RpcTarget.All);
+        }
+        
     }
 
     #region PunCallbacks
@@ -130,7 +143,8 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
         {
             grantMasterClientButton.gameObject.SetActive(true);
-            startRoundButton.gameObject.SetActive(true);
+            if(!GameFullyEnded)
+                startRoundButton.gameObject.SetActive(true);
         }
         else
         {
@@ -143,6 +157,13 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
 
     #region RPCs
 
+    [PunRPC]
+    private void MatchEndedRPC()
+    {
+        GameFullyEnded = true;
+        startRoundButton.gameObject.SetActive(false);
+    }
+    
     [PunRPC]
     private void SendCharacterPicked(int pickedID, string characterColor, PhotonMessageInfo messageInfo)
     {

@@ -4316,6 +4316,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1941953227142008933, guid: 5d92d05b91746a640a0a571a8bd6116f, type: 3}
+      propertyPath: scoreToWin
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1941953227142008933, guid: 5d92d05b91746a640a0a571a8bd6116f, type: 3}
+      propertyPath: startRoundButton
+      value: 
+      objectReference: {fileID: 769094949}
+    - target: {fileID: 1941953227142008933, guid: 5d92d05b91746a640a0a571a8bd6116f, type: 3}
+      propertyPath: aboveTheStartButtonText
+      value: 
+      objectReference: {fileID: 1030840801}
+    - target: {fileID: 1941953227142008933, guid: 5d92d05b91746a640a0a571a8bd6116f, type: 3}
       propertyPath: playerScoreUIBlocks.Array.size
       value: 8
       objectReference: {fileID: 0}
