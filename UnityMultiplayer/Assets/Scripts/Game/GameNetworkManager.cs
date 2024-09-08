@@ -115,6 +115,12 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         PhotonNetwork.SetMasterClient(nextPlayer);
     }
 
+    public void OnMatchEnded()
+    {
+        if(!PhotonNetwork.IsMasterClient) return;
+        //TODO: implement end game logic
+    }
+
     #region PunCallbacks
 
     public override void OnMasterClientSwitched(Photon.Realtime.Player newMasterClient)
