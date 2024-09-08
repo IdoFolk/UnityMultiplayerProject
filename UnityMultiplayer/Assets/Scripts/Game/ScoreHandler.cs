@@ -78,14 +78,17 @@ namespace Game
                 Debug.LogError("Player Count Above 8 Not Implemented in scoreboard");
                 return;
             }
-
+            foreach (var playerScoreUIBlock in playerScoreUIBlocks)
+            {
+                playerScoreUIBlock.Hide();
+            }
             int i = 0;
             foreach (var player in PhotonNetwork.CurrentRoom.Players)
             {
                 var score = player.Value.CustomProperties["Score"];
                 var color = (string)player.Value.CustomProperties["Color"];
-                if(score != null) playerScoreUIBlocks[i].Init(player.Value.NickName,color.FromHexToColor(),(int)score);
-                else playerScoreUIBlocks[i].Init(player.Value.NickName,color.FromHexToColor(),0);
+                if(score != null) playerScoreUIBlocks[i].Show(player.Value.NickName,color.FromHexToColor(),(int)score);
+                else playerScoreUIBlocks[i].Show(player.Value.NickName,color.FromHexToColor(),0);
                 i++;
             }
 
